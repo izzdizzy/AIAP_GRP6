@@ -1,22 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import PrimaryButton from '../PrimaryButton';
-import { sendCoachMessage } from '../../services/genaiApi';
+import { useCoach } from '../../context/CoachContext';
 
 export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Hello! I am your AI Health & Lifestyle Coach. I synthesize insights across all your completed health assessments to offer personalized diet, exercise, and care navigation guidance. How can I assist you today?'
-    }
-  ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [promptChips, setPromptChips] = useState([
-    'Suggest a low-sodium diet based on my risk',
-    'How do my heart and diabetes risks interact?',
-    'What CHAS subsidies or Healthier SG benefits apply to me?'
-  ]);
+  const {
+    messages,
+    input,
+    setInput,
+    loading,
+    promptChips,
+    sendMessage
+  } = useCoach();
 
   const messagesEndRef = useRef(null);
 
@@ -28,36 +23,8 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
 
   if (!isOpen) return null;
 
-  const handleSend = async (textToSend) => {
-    const query = textToSend || input;
-    if (!query.trim() || loading) return;
-
-    const userMsg = { role: 'user', content: query };
-    const updatedHistory = [...messages, userMsg];
-    setMessages(updatedHistory);
-    setInput('');
-    setLoading(true);
-
-    try {
-      const response = await sendCoachMessage(unifiedContext, query, updatedHistory);
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: response.reply, isFallback: response.is_fallback }
-      ]);
-      if (response.suggested_chips && response.suggested_chips.length > 0) {
-        setPromptChips(response.suggested_chips);
-      }
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: `Unable to process request right now: ${err.message || 'Network error'}`
-        }
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  const handleSend = (textToSend) => {
+    sendMessage(textToSend, unifiedContext);
   };
 
   const activeCount = unifiedContext?.active_module_count || 1;
@@ -72,34 +39,38 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
       zIndex: 9999,
       display: 'flex',
       justifyContent: 'flex-end',
-      backgroundColor: 'rgba(0, 0, 0, 0.4)',
-      backdropFilter: 'blur(3px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backdropFilter: 'blur(4px)',
+      padding: '16px',
+      boxSizing: 'border-box',
       transition: 'opacity 0.3s ease'
     }}>
       {/* Backdrop click to close */}
       <div style={{ flex: 1 }} onClick={onClose} />
 
-      {/* Drawer Container */}
+      {/* Island Floating Panel Container */}
       <div style={{
-        width: '450px',
-        maxWidth: '90vw',
-        height: '100%',
-        backgroundColor: 'var(--surface, #1e293b)',
-        color: 'var(--text, #f8fafc)',
+        width: '520px',
+        maxWidth: 'calc(100vw - 32px)',
+        height: 'calc(100vh - 32px)',
+        backgroundColor: 'var(--surface)',
+        color: 'var(--text)',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '-4px 0 24px rgba(0,0,0,0.3)',
-        borderLeft: '1px solid var(--border, #334155)',
-        animation: 'slideInRight 0.3s ease-out'
+        borderRadius: '20px',
+        boxShadow: '0 24px 48px rgba(0, 0, 0, 0.45)',
+        border: '1px solid var(--border)',
+        overflow: 'hidden',
+        animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
       }}>
         {/* Drawer Header */}
         <div style={{
-          padding: '18px 20px',
-          borderBottom: '1px solid var(--border, #334155)',
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'var(--surface-muted, #0f172a)'
+          justify: 'space-between',
+          background: 'var(--surface-muted)'
         }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -109,11 +80,12 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
               display: 'inline-block',
               marginTop: '4px',
               fontSize: '0.75rem',
-              padding: '2px 8px',
+              padding: '3px 10px',
               borderRadius: '12px',
-              background: 'var(--accent, #38bdf8)',
-              color: '#0f172a',
-              fontWeight: 600
+              background: 'var(--surface)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+              fontWeight: 500
             }}>
               Context: {activeCount} of 3 Assessments Active
             </span>
@@ -137,9 +109,9 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
         {/* Prompt Chips Bar */}
         {promptChips.length > 0 && (
           <div style={{
-            padding: '12px 16px',
-            background: 'var(--surface-muted, #0f172a)',
-            borderBottom: '1px solid var(--border, #334155)',
+            padding: '10px 16px',
+            background: 'var(--surface-muted)',
+            borderBottom: '1px solid var(--border)',
             display: 'flex',
             gap: '8px',
             overflowX: 'auto',
@@ -148,18 +120,20 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
             {promptChips.map((chip, idx) => (
               <button
                 key={idx}
+                type="button"
                 onClick={() => handleSend(chip)}
                 disabled={loading}
                 style={{
                   fontSize: '0.78rem',
                   padding: '6px 12px',
                   borderRadius: '16px',
-                  background: 'var(--surface, #1e293b)',
-                  color: 'var(--accent, #38bdf8)',
-                  border: '1px solid var(--border, #334155)',
+                  background: 'var(--surface)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--border)',
                   cursor: 'pointer',
                   fontWeight: 500,
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0
                 }}
               >
                 💡 {chip}
@@ -188,14 +162,16 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
                 borderRadius: '12px',
                 fontSize: '0.9rem',
                 lineHeight: '1.5',
-                backgroundColor: msg.role === 'user' ? '#0284c7' : 'var(--surface-muted, #0f172a)',
-                color: msg.role === 'user' ? '#ffffff' : 'var(--text, #f8fafc)',
-                border: msg.role === 'user' ? 'none' : '1px solid var(--border, #334155)',
-                whiteSpace: 'pre-line'
+                backgroundColor: msg.role === 'user' ? 'var(--accent, #0284c7)' : 'var(--surface-muted)',
+                color: msg.role === 'user' ? '#ffffff' : 'var(--text)',
+                border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
+                whiteSpace: 'pre-line',
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word'
               }}
             >
               {msg.role === 'assistant' && (
-                <div style={{ fontSize: '0.75rem', color: 'var(--accent, #38bdf8)', fontWeight: 600, marginBottom: '4px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 600, marginBottom: '4px' }}>
                   AI Coach {msg.isFallback && '(Offline Clinical Protocol)'}
                 </div>
               )}
@@ -207,8 +183,8 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
               alignSelf: 'flex-start',
               padding: '10px 14px',
               borderRadius: '12px',
-              backgroundColor: 'var(--surface-muted, #0f172a)',
-              color: 'var(--text-muted, #94a3b8)',
+              backgroundColor: 'var(--surface-muted)',
+              color: 'var(--text-muted)',
               fontSize: '0.85rem',
               fontStyle: 'italic'
             }}>
@@ -220,9 +196,9 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
 
         {/* Drawer Footer Input */}
         <div style={{
-          padding: '16px',
-          borderTop: '1px solid var(--border, #334155)',
-          background: 'var(--surface-muted, #0f172a)',
+          padding: '14px 16px',
+          borderTop: '1px solid var(--border)',
+          background: 'var(--surface-muted)',
           display: 'flex',
           gap: '10px'
         }}>
@@ -237,9 +213,9 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
               flex: 1,
               padding: '10px 14px',
               borderRadius: '8px',
-              border: '1px solid var(--border, #334155)',
-              backgroundColor: 'var(--surface, #1e293b)',
-              color: 'var(--text, #f8fafc)',
+              border: '1px solid var(--border)',
+              backgroundColor: 'var(--surface)',
+              color: 'var(--text)',
               fontSize: '0.9rem'
             }}
           />

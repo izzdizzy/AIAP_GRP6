@@ -1,51 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import SectionCard from '../SectionCard';
 import PrimaryButton from '../PrimaryButton';
-import { sendCoachMessage } from '../../services/genaiApi';
+import { useCoach } from '../../context/CoachContext';
 
 export default function LifestyleCoachTab({ unifiedContext }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Hello! I am your AI Health & Lifestyle Coach. I synthesize insights across your active health assessments to offer personalized diet, exercise, and lifestyle guidance. How can I assist you today?'
-    }
-  ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [promptChips, setPromptChips] = useState([
-    'Suggest a low-sodium diet based on my results',
-    'How do my heart disease and diabetes risks interact?',
-    'What CHAS subsidies or Healthier SG benefits apply to me?'
-  ]);
+  const {
+    messages,
+    input,
+    setInput,
+    loading,
+    promptChips,
+    sendMessage
+  } = useCoach();
 
-  const handleSend = async (textToSend) => {
-    const query = textToSend || input;
-    if (!query.trim() || loading) return;
+  const messagesEndRef = useRef(null);
 
-    const userMsg = { role: 'user', content: query };
-    const updatedHistory = [...messages, userMsg];
-    setMessages(updatedHistory);
-    setInput('');
-    setLoading(true);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-    try {
-      const response = await sendCoachMessage(unifiedContext, query, updatedHistory);
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: response.reply, isFallback: response.is_fallback }
-      ]);
-      if (response.suggested_chips && response.suggested_chips.length > 0) {
-        setPromptChips(response.suggested_chips);
-      }
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: `Unable to process request right now: ${err.message || 'Network error'}` }
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  const handleSend = (textToSend) => {
+    sendMessage(textToSend, unifiedContext);
   };
 
   return (
@@ -54,14 +30,19 @@ export default function LifestyleCoachTab({ unifiedContext }) {
       flexDirection: 'column',
       height: 'calc(100vh - 270px)',
       minHeight: '480px',
-      maxHeight: '700px'
+      maxHeight: '700px',
+      width: '100%',
+      maxWidth: '100%',
+      boxSizing: 'border-box'
     }}>
-      <SectionCard style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <SectionCard style={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%', boxSizing: 'border-box' }}>
         <div style={{
           padding: '16px 20px',
           display: 'flex',
           flexDirection: 'column',
           height: '100%',
+          width: '100%',
+          boxSizing: 'border-box',
           overflow: 'hidden'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexShrink: 0 }}>
@@ -84,7 +65,9 @@ export default function LifestyleCoachTab({ unifiedContext }) {
               paddingBottom: '8px',
               marginBottom: '10px',
               whiteSpace: 'nowrap',
-              flexShrink: 0
+              flexShrink: 0,
+              maxWidth: '100%',
+              boxSizing: 'border-box'
             }}>
               {promptChips.map((chip, idx) => (
                 <button
@@ -100,7 +83,8 @@ export default function LifestyleCoachTab({ unifiedContext }) {
                     color: 'var(--accent)',
                     border: '1px solid var(--border)',
                     cursor: 'pointer',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    flexShrink: 0
                   }}
                 >
                   💡 {chip}
@@ -120,7 +104,9 @@ export default function LifestyleCoachTab({ unifiedContext }) {
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
-            marginBottom: '12px'
+            marginBottom: '12px',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
           }}>
             {messages.map((msg, idx) => (
               <div
@@ -133,9 +119,11 @@ export default function LifestyleCoachTab({ unifiedContext }) {
                   borderRadius: '12px',
                   fontSize: '0.9rem',
                   lineHeight: '1.5',
-                  backgroundColor: msg.role === 'user' ? 'var(--accent-strong, #059669)' : 'var(--surface)',
+                  backgroundColor: msg.role === 'user' ? 'var(--accent, #059669)' : 'var(--surface)',
                   color: msg.role === 'user' ? '#ffffff' : 'var(--text)',
-                  border: msg.role === 'user' ? 'none' : '1px solid var(--border)'
+                  border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
+                  overflowWrap: 'break-word',
+                  wordBreak: 'break-word'
                 }}
               >
                 {msg.role === 'assistant' && (
@@ -159,10 +147,11 @@ export default function LifestyleCoachTab({ unifiedContext }) {
                 Analyzing clinical context & generating recommendations...
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Box */}
-          <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: '10px', flexShrink: 0, width: '100%', boxSizing: 'border-box' }}>
             <input
               type="text"
               placeholder="Ask about diet, exercise, or subsidies..."
@@ -193,5 +182,4 @@ export default function LifestyleCoachTab({ unifiedContext }) {
       </SectionCard>
     </div>
   );
-
 }

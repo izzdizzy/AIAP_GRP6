@@ -35,6 +35,7 @@ import {
 import CoachDrawer from './components/genai/CoachDrawer';
 import AiInsightsPage from './pages/AiInsightsPage';
 import { buildUnifiedContext, prefetchAiInsights } from './services/genaiApi';
+import { CoachProvider } from './context/CoachContext';
 
 export default function App() {
   const navigate = useNavigate();
@@ -182,7 +183,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <CoachProvider>
       <AppShell
         cadCompleted={cadCompleted}
         readmissionCompleted={readmissionCompleted}
@@ -312,6 +313,6 @@ export default function App() {
         onClose={() => setIsCoachOpen(false)}
         unifiedContext={unifiedContext}
       />
-    </>
+    </CoachProvider>
   );
 }
