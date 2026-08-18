@@ -12,6 +12,7 @@ const emptyResult = {
 
 export default function ResultsPage({
   assessmentState,
+  unifiedContext,
   onRestart,
   onEditAssessment,
   onOpenChat
@@ -54,6 +55,7 @@ export default function ResultsPage({
       pillClass={pillClass}
       severityScore={severityScore}
       factors={formattedFactors}
+      unifiedContext={unifiedContext}
       onOpenChat={handleChat}
       onEditAssessment={handleEdit}
       onBackToOverview={handleOverview}

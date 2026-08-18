@@ -4,6 +4,7 @@ import UnifiedResultsCard from '../../../components/UnifiedResultsCard';
 
 export default function DiabetesResults({
   prediction,
+  unifiedContext,
   onResetPrediction,
   onBackToLanding,
   onOpenChat
@@ -52,6 +53,7 @@ export default function DiabetesResults({
       pillClass={pillClass}
       severityScore={severityScore}
       factors={formattedFactors}
+      unifiedContext={unifiedContext}
       onOpenChat={handleChat}
       onEditAssessment={handleEdit}
       onBackToOverview={handleOverview}

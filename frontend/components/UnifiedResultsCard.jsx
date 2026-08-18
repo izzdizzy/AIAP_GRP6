@@ -2,6 +2,8 @@ import React from 'react';
 import PrimaryButton from './PrimaryButton';
 import SectionCard from './SectionCard';
 import FeatureImportanceBar from './FeatureImportanceBar';
+import ShapInterpreterCard from './genai/ShapInterpreterCard';
+import CareTriageDashboard from './genai/CareTriageDashboard';
 
 /**
  * Reusable Unified Results Card Component
@@ -10,6 +12,7 @@ import FeatureImportanceBar from './FeatureImportanceBar';
  * - Extracted Title above main card
  * - 3-Column CSS Grid summary cards with top-aligned headers for Metric Probability, Risk Badge, and Severity Score
  * - SHAP Feature Importance horizontal bar visualizers
+ * - Centralized GenAI Feature 2 (SHAP XAI Interpreter) & Feature 3 (Care Triage Dashboard)
  * - Standardized action buttons (Ask AI Assistant, Edit Inputs, Return to Overview)
  */
 export default function UnifiedResultsCard({
@@ -20,6 +23,7 @@ export default function UnifiedResultsCard({
   pillClass = 'risk-pill--low',
   severityScore = 0,
   factors = [],
+  unifiedContext = null,
   onOpenChat,
   onEditAssessment,
   onBackToOverview,
@@ -124,6 +128,16 @@ export default function UnifiedResultsCard({
               <p style={{ color: 'var(--text-muted)', margin: 0 }}>No feature impact factors calculated yet.</p>
             )}
           </div>
+
+          {/* Centralized Feature 2: Plain-Language SHAP & XAI Interpreter */}
+          {unifiedContext && (
+            <ShapInterpreterCard unifiedContext={unifiedContext} />
+          )}
+
+          {/* Centralized Feature 3: Care Triage & Post-Discharge Navigator */}
+          {unifiedContext && (
+            <CareTriageDashboard unifiedContext={unifiedContext} />
+          )}
 
           {/* Bottom Action Area: Prominent Ask AI Assistant + Standard Actions */}
           <div style={{

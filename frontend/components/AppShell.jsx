@@ -6,7 +6,9 @@ export default function AppShell({
   children,
   cadCompleted = false,
   readmissionCompleted = false,
-  diabetesCompleted = false
+  diabetesCompleted = false,
+  activeModuleCount = 1,
+  onOpenCoach
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -102,6 +104,36 @@ export default function AppShell({
               }} />
               <span>Service Online</span>
             </div>
+            {onOpenCoach && (
+              <button
+                type="button"
+                onClick={onOpenCoach}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg, #0284c7, #2563eb)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.4)'
+                }}
+              >
+                <span>🤖 AI Health Coach</span>
+                <span style={{
+                  background: 'rgba(255,255,255,0.25)',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontSize: '0.72rem'
+                }}>
+                  {activeModuleCount}/3 Active
+                </span>
+              </button>
+            )}
             <ThemeToggle />
             <button
               type="button"

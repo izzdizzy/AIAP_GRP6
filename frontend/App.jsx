@@ -23,9 +23,16 @@ import DiabetesPage from './features/diabetes/pages/DiabetesPage';
 import DiabetesResults from './features/diabetes/components/DiabetesResults';
 import { predictRisk as predictDiabetesRisk } from './features/diabetes/services/api';
 
+// Centralized GenAI
+import CoachDrawer from './components/genai/CoachDrawer';
+import { buildUnifiedContext } from './services/genaiApi';
+
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // GenAI Coach Drawer State
+  const [isCoachOpen, setIsCoachOpen] = useState(false);
 
   // CAD State
   const [assessmentState, setAssessmentState] = useState(() => loadStoredAssessmentState());
@@ -101,6 +108,14 @@ export default function App() {
   const readmissionCompleted = Boolean(readmissionPrediction);
   const diabetesCompleted = Boolean(diabetesPrediction);
 
+  const unifiedContext = buildUnifiedContext({
+    cadState: assessmentState,
+    readmissionForm,
+    readmissionPrediction,
+    diabetesForm,
+    diabetesPrediction
+  });
+
   const isLanding = location.pathname === '/' || location.pathname === '/home';
 
   if (isLanding) {
@@ -114,106 +129,120 @@ export default function App() {
   }
 
   return (
-    <AppShell
-      cadCompleted={cadCompleted}
-      readmissionCompleted={readmissionCompleted}
-      diabetesCompleted={diabetesCompleted}
-    >
-      <Routes>
-        {/* CAD Routes */}
-        <Route
-          path="/cad/assessment"
-          element={
-            <AssessmentPage
-              onSubmitAssessment={handleSubmitCAD}
-              loading={cadLoading}
-              onCancel={() => navigate('/')}
-              initialValues={assessmentState?.assessmentForm}
-            />
-          }
-        />
-        <Route
-          path="/cad/results"
-          element={
-            <ResultsPage
-              assessmentState={assessmentState}
-              onRestart={() => {
-                setAssessmentState(null);
-                navigate('/');
-              }}
-              onEditAssessment={() => navigate('/cad/assessment')}
-              onOpenChat={() => navigate('/cad/chat')}
-            />
-          }
-        />
-        <Route
-          path="/cad/chat"
-          element={
-            <ChatPage
-              assessmentState={assessmentState}
-              setAssessmentState={setAssessmentState}
-              chatMessages={assessmentState?.chatMessages ?? []}
-              setChatMessages={(updater) => {
-                setAssessmentState(prev => {
-                  if (!prev) return prev;
-                  const current = prev.chatMessages ?? [];
-                  const next = typeof updater === 'function' ? updater(current) : updater;
-                  return { ...prev, chatMessages: next };
-                });
-              }}
-              onBack={() => navigate('/cad/results')}
-            />
-          }
-        />
+    <>
+      <AppShell
+        cadCompleted={cadCompleted}
+        readmissionCompleted={readmissionCompleted}
+        diabetesCompleted={diabetesCompleted}
+        activeModuleCount={unifiedContext.active_module_count}
+        onOpenCoach={() => setIsCoachOpen(true)}
+      >
+        <Routes>
+          {/* CAD Routes */}
+          <Route
+            path="/cad/assessment"
+            element={
+              <AssessmentPage
+                onSubmitAssessment={handleSubmitCAD}
+                loading={cadLoading}
+                onCancel={() => navigate('/')}
+                initialValues={assessmentState?.assessmentForm}
+              />
+            }
+          />
+          <Route
+            path="/cad/results"
+            element={
+              <ResultsPage
+                assessmentState={assessmentState}
+                unifiedContext={unifiedContext}
+                onRestart={() => {
+                  setAssessmentState(null);
+                  navigate('/');
+                }}
+                onEditAssessment={() => navigate('/cad/assessment')}
+                onOpenChat={() => setIsCoachOpen(true)}
+              />
+            }
+          />
+          <Route
+            path="/cad/chat"
+            element={
+              <ChatPage
+                assessmentState={assessmentState}
+                setAssessmentState={setAssessmentState}
+                chatMessages={assessmentState?.chatMessages ?? []}
+                setChatMessages={(updater) => {
+                  setAssessmentState(prev => {
+                    if (!prev) return prev;
+                    const current = prev.chatMessages ?? [];
+                    const next = typeof updater === 'function' ? updater(current) : updater;
+                    return { ...prev, chatMessages: next };
+                  });
+                }}
+                onBack={() => navigate('/cad/results')}
+              />
+            }
+          />
 
-        {/* Readmission Routes */}
-        <Route
-          path="/readmission/assessment"
-          element={
-            <PatientForm
-              onSubmit={handleSubmitReadmission}
-              loading={readmissionLoading}
-              initialValues={readmissionForm}
-            />
-          }
-        />
-        <Route
-          path="/readmission/results"
-          element={
-            <ReadmissionResults
-              prediction={readmissionPrediction}
-              onResetPrediction={() => navigate('/readmission/assessment')}
-              onBackToLanding={() => navigate('/')}
-            />
-          }
-        />
+          {/* Readmission Routes */}
+          <Route
+            path="/readmission/assessment"
+            element={
+              <PatientForm
+                onSubmit={handleSubmitReadmission}
+                loading={readmissionLoading}
+                initialValues={readmissionForm}
+              />
+            }
+          />
+          <Route
+            path="/readmission/results"
+            element={
+              <ReadmissionResults
+                prediction={readmissionPrediction}
+                unifiedContext={unifiedContext}
+                onResetPrediction={() => navigate('/readmission/assessment')}
+                onBackToLanding={() => navigate('/')}
+                onOpenChat={() => setIsCoachOpen(true)}
+              />
+            }
+          />
 
-        {/* Diabetes Routes */}
-        <Route
-          path="/diabetes/assessment"
-          element={
-            <DiabetesPage
-              onSubmitAssessment={handleSubmitDiabetes}
-              loading={diabetesLoading}
-              initialValues={diabetesForm}
-            />
-          }
-        />
-        <Route
-          path="/diabetes/results"
-          element={
-            <DiabetesResults
-              prediction={diabetesPrediction}
-              onResetPrediction={() => navigate('/diabetes/assessment')}
-              onBackToLanding={() => navigate('/')}
-              onOpenChat={() => navigate('/cad/chat')}
-            />
-          }
-        />
+          {/* Diabetes Routes */}
+          <Route
+            path="/diabetes/assessment"
+            element={
+              <DiabetesPage
+                onSubmitAssessment={handleSubmitDiabetes}
+                loading={diabetesLoading}
+                initialValues={diabetesForm}
+              />
+            }
+          />
+          <Route
+            path="/diabetes/results"
+            element={
+              <DiabetesResults
+                prediction={diabetesPrediction}
+                unifiedContext={unifiedContext}
+                onResetPrediction={() => navigate('/diabetes/assessment')}
+                onBackToLanding={() => navigate('/')}
+                onOpenChat={() => setIsCoachOpen(true)}
+              />
+            }
+          />
 
-        {/* Fallback redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AppShell>
+          {/* Fallback redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppShell>
+
+      <CoachDrawer
+        isOpen={isCoachOpen}
+        onClose={() => setIsCoachOpen(false)}
+        unifiedContext={unifiedContext}
+      />
+    </>
   );
 }

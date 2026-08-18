@@ -4,13 +4,16 @@ import UnifiedResultsCard from '../../../components/UnifiedResultsCard';
 
 export default function ReadmissionResults({
   prediction,
+  unifiedContext,
   onResetPrediction,
-  onBackToLanding
+  onBackToLanding,
+  onOpenChat
 }) {
   const navigate = useNavigate();
 
   const handleEdit = onResetPrediction || (() => navigate('/readmission/assessment'));
   const handleOverview = onBackToLanding || (() => navigate('/'));
+  const handleChat = onOpenChat || (() => navigate('/cad/chat'));
 
   const riskProbPct = prediction?.raw_probability !== undefined
     ? `${(prediction.raw_probability * 100).toFixed(1)}%`
@@ -45,7 +48,8 @@ export default function ReadmissionResults({
       pillClass={pillClass}
       severityScore={severityScore}
       factors={formattedShap}
-      onOpenChat={() => navigate('/cad/chat')}
+      unifiedContext={unifiedContext}
+      onOpenChat={handleChat}
       onEditAssessment={handleEdit}
       onBackToOverview={handleOverview}
       isMissingPrediction={!prediction}
