@@ -34,19 +34,20 @@
   --bg: #0f172a;
   --bg-accent: #1e293b;
   --surface: #1e293b;
-  --surface-muted: #334155;
-  --border: #475569;
+  --surface-muted: #0f172a;
+  --border: #334155;
   --text: #f8fafc;
-  --text-muted: #94a3b8;
-  --accent: #14b8a6;
-  --accent-strong: #0d9488;
+  --text-muted: #cbd5e1;
+  --text-subtle: #94a3b8;
+  --accent: #38bdf8;
+  --accent-strong: #0284c7;
   --danger: #f87171;
   --shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 
   /* Risk Semantics Dark Mode */
-  --risk-low-bg: rgba(20, 184, 166, 0.18);
-  --risk-low-text: #2dd4bf;
-  --risk-low-border: rgba(45, 212, 191, 0.4);
+  --risk-low-bg: rgba(56, 189, 248, 0.18);
+  --risk-low-text: #38bdf8;
+  --risk-low-border: rgba(56, 189, 248, 0.4);
 
   --risk-mod-bg: rgba(234, 179, 8, 0.18);
   --risk-mod-text: #fde047;
@@ -186,7 +187,7 @@ button {
 }
 
 .section-card {
-  padding: 24px;
+  padding: 12px;
   padding-bottom: 32px;
 }
 
@@ -896,6 +897,46 @@ button {
 .progress-group--orange {
   background: rgba(251, 146, 60, 0.18);
   border-color: rgba(251, 146, 60, 0.45);
+}
+
+/* React Markdown Component Styling */
+.markdown-body {
+  line-height: 1.55;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.markdown-body p {
+  margin: 0.4em 0;
+}
+
+.markdown-body p:first-child {
+  margin-top: 0;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.4em 0;
+  padding-left: 1.25rem;
+}
+
+.markdown-body li {
+  margin-bottom: 0.25em;
+}
+
+.markdown-body strong {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.markdown-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 600;
 }
 
 .assessment-review__alert {

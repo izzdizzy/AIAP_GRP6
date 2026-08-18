@@ -1,9 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import PrimaryButton from './PrimaryButton';
 import SectionCard from './SectionCard';
 import FeatureImportanceBar from './FeatureImportanceBar';
-import ShapInterpreterCard from './genai/ShapInterpreterCard';
-import CareTriageDashboard from './genai/CareTriageDashboard';
 
 /**
  * Reusable Unified Results Card Component
@@ -12,7 +11,7 @@ import CareTriageDashboard from './genai/CareTriageDashboard';
  * - Extracted Title above main card
  * - 3-Column CSS Grid summary cards with top-aligned headers for Metric Probability, Risk Badge, and Severity Score
  * - SHAP Feature Importance horizontal bar visualizers
- * - Centralized GenAI Feature 2 (SHAP XAI Interpreter) & Feature 3 (Care Triage Dashboard)
+ * - Prominent "View AI Insights & Care Plan" action button linking directly to /ai-insights
  * - Standardized action buttons (Ask AI Assistant, Edit Inputs, Return to Overview)
  */
 export default function UnifiedResultsCard({
@@ -31,6 +30,8 @@ export default function UnifiedResultsCard({
   emptyMessage = 'No assessment prediction found. Please complete the assessment form first.',
   isMissingPrediction = false
 }) {
+  const navigate = useNavigate();
+
   if (isMissingPrediction) {
     return (
       <div className="page-stack">
@@ -129,29 +130,41 @@ export default function UnifiedResultsCard({
             )}
           </div>
 
-          {/* Centralized Feature 2: Plain-Language SHAP & XAI Interpreter */}
-          {unifiedContext && (
-            <ShapInterpreterCard unifiedContext={unifiedContext} />
-          )}
-
-          {/* Centralized Feature 3: Care Triage & Post-Discharge Navigator */}
-          {unifiedContext && (
-            <CareTriageDashboard unifiedContext={unifiedContext} />
-          )}
-
-          {/* Bottom Action Area: Prominent Ask AI Assistant + Standard Actions */}
+          {/* Bottom Action Area: Prominent ✨ View AI Insights & Care Plan Button + Standard Actions */}
           <div style={{
             display: 'flex',
             gap: '12px',
             flexWrap: 'wrap',
             alignItems: 'center',
-            paddingTop: '12px',
+            paddingTop: '16px',
             borderTop: '1px solid var(--border)'
           }}>
+            <button
+              type="button"
+              onClick={() => navigate('/ai-insights')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #059669, #0d9488)',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(5, 150, 105, 0.35)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>✨ View AI Insights & Care Plan</span>
+            </button>
+
             {onOpenChat && (
               <PrimaryButton
                 type="button"
-                variant="ai"
+                variant="secondary"
                 onClick={onOpenChat}
                 disabled={disableChat}
               >

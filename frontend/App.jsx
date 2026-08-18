@@ -17,15 +17,24 @@ import {
 import PatientForm from './features/readmission/components/PatientForm';
 import ReadmissionResults from './features/readmission/components/ReadmissionResults';
 import { predictReadmission } from './features/readmission/services/api';
+import {
+  loadStoredReadmissionState,
+  saveStoredReadmissionState
+} from './features/readmission/utils/storage';
 
 // Diabetes
 import DiabetesPage from './features/diabetes/pages/DiabetesPage';
 import DiabetesResults from './features/diabetes/components/DiabetesResults';
 import { predictRisk as predictDiabetesRisk } from './features/diabetes/services/api';
+import {
+  loadStoredDiabetesState,
+  saveStoredDiabetesState
+} from './features/diabetes/utils/storage';
 
 // Centralized GenAI
 import CoachDrawer from './components/genai/CoachDrawer';
-import { buildUnifiedContext } from './services/genaiApi';
+import AiInsightsPage from './pages/AiInsightsPage';
+import { buildUnifiedContext, prefetchAiInsights } from './services/genaiApi';
 
 export default function App() {
   const navigate = useNavigate();
@@ -39,18 +48,28 @@ export default function App() {
   const [cadLoading, setCadLoading] = useState(false);
 
   // Readmission State
-  const [readmissionForm, setReadmissionForm] = useState(null);
-  const [readmissionPrediction, setReadmissionPrediction] = useState(null);
+  const [readmissionState, setReadmissionState] = useState(() => loadStoredReadmissionState());
+  const readmissionForm = readmissionState?.form ?? null;
+  const readmissionPrediction = readmissionState?.prediction ?? null;
   const [readmissionLoading, setReadmissionLoading] = useState(false);
 
   // Diabetes State
-  const [diabetesForm, setDiabetesForm] = useState(null);
-  const [diabetesPrediction, setDiabetesPrediction] = useState(null);
+  const [diabetesState, setDiabetesState] = useState(() => loadStoredDiabetesState());
+  const diabetesForm = diabetesState?.form ?? null;
+  const diabetesPrediction = diabetesState?.prediction ?? null;
   const [diabetesLoading, setDiabetesLoading] = useState(false);
 
   useEffect(() => {
     saveStoredAssessmentState(assessmentState);
   }, [assessmentState]);
+
+  useEffect(() => {
+    saveStoredReadmissionState(readmissionState);
+  }, [readmissionState]);
+
+  useEffect(() => {
+    saveStoredDiabetesState(diabetesState);
+  }, [diabetesState]);
 
   // CAD Handlers
   async function handleSubmitCAD(values) {
@@ -58,12 +77,24 @@ export default function App() {
     try {
       const formValues = structuredClone(values);
       const response = await submitAssessment(values);
-      setAssessmentState({
+      const nextCadState = {
         ...response,
         assessmentForm: formValues,
         sessionId: null,
         chatMessages: []
+      };
+      setAssessmentState(nextCadState);
+
+      // Background pre-fetch of AI Insights
+      const nextContext = buildUnifiedContext({
+        cadState: nextCadState,
+        readmissionForm,
+        readmissionPrediction,
+        diabetesForm,
+        diabetesPrediction
       });
+      prefetchAiInsights(nextContext, true).catch(() => {});
+
       navigate('/cad/results');
     } catch (error) {
       alert(error.message || 'Failed to calculate CAD risk.');
@@ -78,8 +109,19 @@ export default function App() {
     try {
       const formValues = structuredClone(values);
       const result = await predictReadmission(values);
-      setReadmissionForm(formValues);
-      setReadmissionPrediction(result);
+      const nextReadmissionState = { form: formValues, prediction: result };
+      setReadmissionState(nextReadmissionState);
+
+      // Background pre-fetch of AI Insights
+      const nextContext = buildUnifiedContext({
+        cadState: assessmentState,
+        readmissionForm: formValues,
+        readmissionPrediction: result,
+        diabetesForm,
+        diabetesPrediction
+      });
+      prefetchAiInsights(nextContext, true).catch(() => {});
+
       navigate('/readmission/results');
     } catch (error) {
       alert(error.message || 'Failed to calculate readmission risk.');
@@ -94,8 +136,19 @@ export default function App() {
     try {
       const formValues = structuredClone(values);
       const result = await predictDiabetesRisk(values);
-      setDiabetesForm(formValues);
-      setDiabetesPrediction(result);
+      const nextDiabetesState = { form: formValues, prediction: result };
+      setDiabetesState(nextDiabetesState);
+
+      // Background pre-fetch of AI Insights
+      const nextContext = buildUnifiedContext({
+        cadState: assessmentState,
+        readmissionForm,
+        readmissionPrediction,
+        diabetesForm: formValues,
+        diabetesPrediction: result
+      });
+      prefetchAiInsights(nextContext, true).catch(() => {});
+
       navigate('/diabetes/results');
     } catch (error) {
       alert(error.message || 'Failed to calculate diabetes risk.');
@@ -202,7 +255,10 @@ export default function App() {
               <ReadmissionResults
                 prediction={readmissionPrediction}
                 unifiedContext={unifiedContext}
-                onResetPrediction={() => navigate('/readmission/assessment')}
+                onResetPrediction={() => {
+                  setReadmissionState({ form: null, prediction: null });
+                  navigate('/readmission/assessment');
+                }}
                 onBackToLanding={() => navigate('/')}
                 onOpenChat={() => setIsCoachOpen(true)}
               />
@@ -226,9 +282,22 @@ export default function App() {
               <DiabetesResults
                 prediction={diabetesPrediction}
                 unifiedContext={unifiedContext}
-                onResetPrediction={() => navigate('/diabetes/assessment')}
+                onResetPrediction={() => {
+                  setDiabetesState({ form: null, prediction: null });
+                  navigate('/diabetes/assessment');
+                }}
                 onBackToLanding={() => navigate('/')}
                 onOpenChat={() => setIsCoachOpen(true)}
+              />
+            }
+          />
+
+          {/* Dedicated Centralized AI Insights Hub */}
+          <Route
+            path="/ai-insights"
+            element={
+              <AiInsightsPage
+                unifiedContext={unifiedContext}
               />
             }
           />

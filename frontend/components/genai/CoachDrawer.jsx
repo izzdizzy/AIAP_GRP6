@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import PrimaryButton from '../PrimaryButton';
 import { sendCoachMessage } from '../../services/genaiApi';
 
@@ -179,6 +180,7 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
           {messages.map((msg, idx) => (
             <div
               key={idx}
+              className="markdown-body"
               style={{
                 alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
                 maxWidth: '85%',
@@ -197,7 +199,7 @@ export default function CoachDrawer({ isOpen, onClose, unifiedContext }) {
                   AI Coach {msg.isFallback && '(Offline Clinical Protocol)'}
                 </div>
               )}
-              {msg.content}
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
           ))}
           {loading && (

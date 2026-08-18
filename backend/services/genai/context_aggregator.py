@@ -19,7 +19,7 @@ def format_context_for_prompt(context: UnifiedPatientContext) -> str:
         lines.append(f" Status: Completed")
         lines.append(f" Risk Level: {cad_out.get('risk_level', 'N/A')}")
         lines.append(f" Risk Probability: {cad_out.get('risk_percent', cad_out.get('risk_probability', 0))}%")
-        lines.append(f" Patient Profile: Age {cad_inp.get('age', 'N/A')}, Sex {'Male' if cad_inp.get('sex') == 1 else 'Female'}, Resting BP: {cad_inp.get('trestbps', 'N/A')} mmHg, Cholesterol: {cad_inp.get('chol', 'N/A')} mg/dL")
+        lines.append(f" Exact Patient Metrics: Age {cad_inp.get('age', 'N/A')} years, Biological Sex {'Male' if cad_inp.get('sex') == 1 else 'Female'}, Resting Blood Pressure {cad_inp.get('trestbps', 'N/A')} mmHg, Serum Cholesterol {cad_inp.get('chol', 'N/A')} mg/dL, Max Heart Rate {cad_inp.get('thalach', 'N/A')} bpm, ST Depression (Oldpeak) {cad_inp.get('oldpeak', 'N/A')}")
         top_f = context.cad.top_shap_factors or cad_out.get("top_factors", [])
         if top_f:
             f_str = ", ".join([f"{f.get('feature', f.get('label', 'factor'))} ({f.get('impact', f.get('value', 0)):+.2f})" for f in top_f[:5]])
@@ -35,7 +35,7 @@ def format_context_for_prompt(context: UnifiedPatientContext) -> str:
         lines.append(f" Status: Completed")
         lines.append(f" Risk Band: {diab_out.get('risk_band', 'N/A')} ({diab_out.get('risk_label', 'N/A')})")
         lines.append(f" Risk Probability: {round(float(diab_out.get('risk_probability', 0)) * 100, 1)}%")
-        lines.append(f" Patient Profile: High BP: {'Yes' if diab_inp.get('HighBP') == 1 else 'No'}, High Chol: {'Yes' if diab_inp.get('HighChol') == 1 else 'No'}, BMI: {diab_inp.get('BMI', 'N/A')}, Smoker: {'Yes' if diab_inp.get('Smoker') == 1 else 'No'}")
+        lines.append(f" Exact Patient Metrics: High Blood Pressure: {'Yes (1)' if diab_inp.get('HighBP') == 1 else 'No (0)'}, High Cholesterol: {'Yes (1)' if diab_inp.get('HighChol') == 1 else 'No (0)'}, BMI {diab_inp.get('BMI', 'N/A')}, Smoker: {'Yes' if diab_inp.get('Smoker') == 1 else 'No'}, General Health Rating: {diab_inp.get('GenHlth', 'N/A')}/5, Mental Unhealthy Days: {diab_inp.get('MentHlth', 'N/A')} days, Physical Unhealthy Days: {diab_inp.get('PhysHlth', 'N/A')} days")
         top_f = context.diabetes.top_shap_factors or diab_out.get("top_factors", [])
         if top_f:
             f_str = ", ".join([
@@ -56,8 +56,9 @@ def format_context_for_prompt(context: UnifiedPatientContext) -> str:
         lines.append(f" Urgency Level: {read_out.get('urgency_level', 'N/A')}")
         lines.append(f" Clinical Severity Score: {read_out.get('clinical_severity_score', 'N/A')}/100")
         lines.append(f" Readmission Risk Category: {read_out.get('risk_category', read_out.get('prediction_label', 'N/A'))}")
+        lines.append(f" Exact Patient Metrics: Time in Hospital: {read_inp.get('time_in_hospital', 'N/A')} days, Inpatient Admissions (Past Year): {read_inp.get('number_inpatient', 'N/A')} visits, Outpatient Visits: {read_inp.get('number_outpatient', 'N/A')}, Emergency Visits: {read_inp.get('number_emergency', 'N/A')}, Number of Medications: {read_inp.get('num_medications', 'N/A')}, Number of Diagnoses: {read_inp.get('number_diagnoses', 'N/A')}")
         symptoms = read_inp.get("symptoms") or []
-        lines.append(f" Patient Symptoms: {', '.join(symptoms) if symptoms else 'None reported'}")
+        lines.append(f" Patient Reported Symptoms: {', '.join(symptoms) if symptoms else 'None reported'}")
         lines.append(f" Financial Subsidy Tier: {read_inp.get('chas_tier', 'Standard / Unknown')}")
         top_f = context.readmission.top_shap_factors or read_out.get("shap_values", [])
         if top_f:

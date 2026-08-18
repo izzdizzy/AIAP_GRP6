@@ -30,11 +30,14 @@ export default function AppShell({
     moduleInfo = { title: 'Diabetes Chronic Risk Classifier', eyebrow: 'Endocrine Module' };
   } else if (currentPath.startsWith('/diabetes/results')) {
     moduleInfo = { title: 'Diabetes Assessment Findings', eyebrow: 'Endocrine Module' };
+  } else if (currentPath.startsWith('/ai-insights')) {
+    moduleInfo = { title: 'Patient-Centric AI Insights Hub', eyebrow: 'Centralized GenAI Services' };
   }
 
   const isCadActive = currentPath.startsWith('/cad');
   const isReadmissionActive = currentPath.startsWith('/readmission');
   const isDiabetesActive = currentPath.startsWith('/diabetes');
+  const isAiInsightsActive = currentPath.startsWith('/ai-insights');
 
   function handleCadClick() {
     if (cadCompleted && !currentPath.startsWith('/cad')) {
@@ -114,13 +117,13 @@ export default function AppShell({
                   gap: '6px',
                   padding: '7px 14px',
                   borderRadius: '20px',
-                  background: 'linear-gradient(135deg, #0284c7, #2563eb)',
+                  background: 'linear-gradient(135deg, #059669, #0d9488)',
                   color: '#ffffff',
                   border: 'none',
                   fontSize: '0.82rem',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.4)'
+                  boxShadow: '0 2px 8px rgba(5, 150, 105, 0.4)'
                 }}
               >
                 <span>🤖 AI Health Coach</span>
@@ -160,28 +163,116 @@ export default function AppShell({
               type="button"
               className={isCadActive ? 'nav-link active' : 'nav-link'}
               onClick={handleCadClick}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
             >
               <span>CAD Screening</span>
-              {cadCompleted && <span style={{ fontSize: '0.72rem', opacity: 0.9 }}>✓ Done</span>}
+              {cadCompleted ? (
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  background: '#16a34a',
+                  color: '#ffffff',
+                  boxShadow: '0 1px 4px rgba(22, 163, 74, 0.3)'
+                }}>
+                  ✓ Complete
+                </span>
+              ) : (
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  background: 'rgba(234, 179, 8, 0.15)',
+                  color: '#eab308',
+                  border: '1px solid rgba(234, 179, 8, 0.3)'
+                }}>
+                  Pending
+                </span>
+              )}
             </button>
             <button
               type="button"
               className={isReadmissionActive ? 'nav-link active' : 'nav-link'}
               onClick={handleReadmissionClick}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
             >
               <span>Hospital Readmission</span>
-              {readmissionCompleted && <span style={{ fontSize: '0.72rem', opacity: 0.9 }}>✓ Done</span>}
+              {readmissionCompleted ? (
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  background: '#16a34a',
+                  color: '#ffffff',
+                  boxShadow: '0 1px 4px rgba(22, 163, 74, 0.3)'
+                }}>
+                  ✓ Complete
+                </span>
+              ) : (
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  background: 'rgba(234, 179, 8, 0.15)',
+                  color: '#eab308',
+                  border: '1px solid rgba(234, 179, 8, 0.3)'
+                }}>
+                  Pending
+                </span>
+              )}
             </button>
             <button
               type="button"
               className={isDiabetesActive ? 'nav-link active' : 'nav-link'}
               onClick={handleDiabetesClick}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
             >
               <span>Diabetes Classifier</span>
-              {diabetesCompleted && <span style={{ fontSize: '0.72rem', opacity: 0.9 }}>✓ Done</span>}
+              {diabetesCompleted ? (
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  background: '#16a34a',
+                  color: '#ffffff',
+                  boxShadow: '0 1px 4px rgba(22, 163, 74, 0.3)'
+                }}>
+                  ✓ Complete
+                </span>
+              ) : (
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  background: 'rgba(234, 179, 8, 0.15)',
+                  color: '#eab308',
+                  border: '1px solid rgba(234, 179, 8, 0.3)'
+                }}>
+                  Pending
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              className={isAiInsightsActive ? 'nav-link active' : 'nav-link'}
+              onClick={() => navigate('/ai-insights')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isAiInsightsActive ? 'var(--accent)' : 'linear-gradient(135deg, rgba(5,150,105,0.2), rgba(13,148,136,0.2))',
+                color: isAiInsightsActive ? '#0f172a' : 'var(--accent)',
+                fontWeight: 700,
+                border: '1px solid var(--accent)'
+              }}
+            >
+              <span>🤖 AI Insights Hub</span>
             </button>
           </div>
         </div>
