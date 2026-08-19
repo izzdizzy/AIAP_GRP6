@@ -37,21 +37,23 @@ export default function ResultsPage({
   }));
 
   return (
-    <UnifiedResultsCard
-      title="CAD Screening Results"
-      probLabel="CAD Metric Probability"
-      probValue={riskProbPct}
-      riskBadgeLabel={`${displayResult.riskLevel || 'Low'} Risk`}
-      riskLevel={displayResult.riskLevel || 'Low'}
-      factors={formattedFactors}
-      onOpenChat={handleChat}
-      onEditAssessment={handleEdit}
-      onBackToOverview={handleOverview}
-      disableChat={!assessmentState?.prediction}
-      isMissingPrediction={!assessmentState?.prediction}
-      emptyMessage="No CAD screening prediction found. Please complete the assessment form first."
-      user={user}
-    />
+    <div className="cad-scope page-stack">
+      <UnifiedResultsCard
+        title="CAD Screening Results"
+        probLabel="CAD Metric Probability"
+        probValue={riskProbPct}
+        riskBadgeLabel={`${displayResult.riskLevel || 'Low'} Risk`}
+        riskLevel={displayResult.riskLevel || 'Low'}
+        factors={formattedFactors}
+        onOpenChat={handleChat}
+        onEditAssessment={handleEdit}
+        onBackToOverview={handleOverview}
+        disableChat={!assessmentState?.prediction}
+        isMissingPrediction={!assessmentState?.prediction}
+        emptyMessage="No CAD screening prediction found. Please complete the assessment form first."
+        user={user}
+      />
+    </div>
   );
 }
 

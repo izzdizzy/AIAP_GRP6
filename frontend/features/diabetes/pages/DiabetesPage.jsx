@@ -164,7 +164,7 @@ export default function DiabetesPage({ onSubmitAssessment, loading = false, init
           <h2 style={{
             fontSize: '22px',
             fontWeight: 700,
-            color: 'var(--dia-text, var(--text, #F8FAFC))',
+            color: 'var(--module-accent, var(--text))',
             marginTop: '16px',
             marginBottom: '16px',
             letterSpacing: '-0.01em'

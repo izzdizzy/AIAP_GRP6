@@ -28,7 +28,7 @@ export default function ProgressSidebar({
         <div style={{ marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Completion</span>
-            <span style={{ fontSize: '0.88rem', fontWeight: '700', color: 'var(--accent, #14B8A6)' }}>
+            <span style={{ fontSize: '0.88rem', fontWeight: '700', color: 'var(--module-accent, var(--accent, #14B8A6))' }}>
               {answeredCount} of {totalCount} completed ({percentage}%)
             </span>
           </div>
@@ -43,7 +43,7 @@ export default function ProgressSidebar({
             <div style={{
               width: `${percentage}%`,
               height: '100%',
-              background: 'var(--accent, #14B8A6)',
+              background: 'var(--module-accent, var(--accent, #14B8A6))',
               borderRadius: '999px',
               transition: 'width 0.3s ease'
             }} />
@@ -77,21 +77,21 @@ export default function ProgressSidebar({
                     padding: '10px 12px',
                     borderRadius: '12px',
                     border: isActive
-                      ? '1px solid var(--accent, #14B8A6)'
+                      ? '1px solid var(--module-accent, var(--accent, #14B8A6))'
                       : isCompleted
-                      ? '1px solid var(--risk-low-border, rgba(45, 212, 191, 0.3))'
+                      ? '1px solid var(--module-accent-border, rgba(45, 212, 191, 0.3))'
                       : '1px solid var(--border)',
                     background: isActive
                       ? 'var(--surface-muted)'
                       : isCompleted
-                      ? 'var(--risk-low-bg, rgba(20, 184, 166, 0.1))'
+                      ? 'var(--module-accent-soft, rgba(20, 184, 166, 0.1))'
                       : 'var(--surface)',
                     color: isPending ? 'var(--text-muted)' : 'var(--text)',
                     cursor: onSelectStep ? 'pointer' : 'default',
                     textAlign: 'left',
                     width: '100%',
                     fontSize: '0.85rem',
-                    boxShadow: isActive ? '0 0 0 1px var(--accent, #14B8A6)' : 'none',
+                    boxShadow: isActive ? '0 0 0 1px var(--module-accent, var(--accent, #14B8A6))' : 'none',
                     transition: 'all 0.2s ease'
                   }}
                 >
@@ -101,12 +101,12 @@ export default function ProgressSidebar({
                       height: '24px',
                       borderRadius: '50%',
                       background: isCompleted
-                        ? 'var(--accent, #14B8A6)'
+                        ? 'var(--module-accent, var(--accent, #14B8A6))'
                         : isActive
                         ? 'transparent'
                         : 'var(--surface-muted)',
-                      color: isCompleted ? '#ffffff' : isActive ? 'var(--accent, #14B8A6)' : 'var(--text-muted)',
-                      border: isActive ? '2px solid var(--accent, #14B8A6)' : '1px solid var(--border)',
+                      color: isCompleted ? '#ffffff' : isActive ? 'var(--module-accent, var(--accent, #14B8A6))' : 'var(--text-muted)',
+                      border: isActive ? '2px solid var(--module-accent, var(--accent, #14B8A6))' : '1px solid var(--border)',
                       display: 'grid',
                       placeItems: 'center',
                       fontWeight: 700,
@@ -133,9 +133,9 @@ export default function ProgressSidebar({
                       fontSize: '0.78rem',
                       padding: '2px 8px',
                       borderRadius: '999px',
-                      background: isStepComplete ? 'var(--risk-low-bg, rgba(20, 184, 166, 0.15))' : 'var(--surface-muted)',
-                      color: isStepComplete ? 'var(--risk-low-text, #2DD4BF)' : 'var(--text-muted)',
-                      border: `1px solid ${isStepComplete ? 'var(--risk-low-border, rgba(45, 212, 191, 0.3))' : 'var(--border)'}`,
+                      background: isStepComplete ? 'var(--module-accent-soft, rgba(20, 184, 166, 0.15))' : 'var(--surface-muted)',
+                      color: isStepComplete ? 'var(--module-accent-light, #2DD4BF)' : 'var(--text-muted)',
+                      border: `1px solid ${isStepComplete ? 'var(--module-accent-border, rgba(45, 212, 191, 0.3))' : 'var(--border)'}`,
                       flexShrink: 0
                     }}>
                       ({stepAnswered}/{stepTotal})

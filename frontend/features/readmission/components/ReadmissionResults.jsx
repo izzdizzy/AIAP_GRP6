@@ -32,19 +32,21 @@ export default function ReadmissionResults({
   });
 
   return (
-    <UnifiedResultsCard
-      title="Hospital Readmission Risk Findings"
-      probLabel="Readmission Probability"
-      probValue={riskProbPct}
-      riskBadgeLabel={`${riskCat} Risk`}
-      riskLevel={riskCat}
-      factors={formattedShap}
-      onOpenChat={() => navigate('/ai-insights')}
-      onEditAssessment={handleEdit}
-      onBackToOverview={handleOverview}
-      isMissingPrediction={!prediction}
-      emptyMessage="No readmission risk prediction found. Please complete the assessment form first."
-      user={user}
-    />
+    <div className="readmission-scope page-stack">
+      <UnifiedResultsCard
+        title="Hospital Readmission Risk Findings"
+        probLabel="Readmission Probability"
+        probValue={riskProbPct}
+        riskBadgeLabel={`${riskCat} Risk`}
+        riskLevel={riskCat}
+        factors={formattedShap}
+        onOpenChat={() => navigate('/ai-insights')}
+        onEditAssessment={handleEdit}
+        onBackToOverview={handleOverview}
+        isMissingPrediction={!prediction}
+        emptyMessage="No readmission risk prediction found. Please complete the assessment form first."
+        user={user}
+      />
+    </div>
   );
 }
