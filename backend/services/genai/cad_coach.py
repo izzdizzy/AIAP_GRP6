@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from .client import genai_client
-from .context_builder import UnifiedPatientContext, build_unified_context
+from .context_builder import UnifiedPatientContext, build_unified_context, format_conversation_history
 
 
 class CADCoachService:
@@ -47,35 +47,42 @@ class CADCoachService:
     def generate_advice(
         self,
         context: UnifiedPatientContext,
-        user_query: Optional[str] = None
+        user_query: Optional[str] = None,
+        history: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
         Generates grounded CAD coaching advice with optional structured widget payload.
         """
         query_str = user_query or "Provide lifestyle, dietary, and exercise recommendations based on my CAD risk metrics."
+        history_str = format_conversation_history(history)
 
         system_prompt = f"""
 You are the CAD Specialist & Lifestyle Coach, an expert cardiovascular health advisor for Singapore patients.
 Your role is to give practical, evidence-backed lifestyle, exercise, and dietary guidance tailored to the patient's specific risk metrics.
 
 GLOBAL SYSTEM PERSONA & RESPONSE TONE RULES:
-1. CONCISENESS: For simple or specific queries, provide direct, actionable answers strictly UNDER 150 WORDS using clean Markdown bullet points.
+1. CONCISENESS & BULLET POINTS: For simple or specific queries, provide direct, actionable answers strictly UNDER 150 WORDS using clean Markdown bullet points (`- ` or `* `).
 2. DIRECT SECOND-PERSON TONE: Always address the patient directly using "you" / "your". NEVER use third-person clinical jargon such as "the patient presents with..." or "the patient's cholesterol is...".
-3. MEDICAL DISCLAIMER: Avoid diagnostic statements. Focus strictly on clinical decision support, health education, and provider triage.
+3. NO REPETITIVE SYMPTOM EXPLANATION: Do NOT repeat or re-explain the patient's initial symptoms, risk level, or background health metrics in follow-up messages unless the user specifically asks about them or they are directly required for the current query.
+4. FOLLOW-UP HANDLING: Refer to the conversation history to handle follow-up questions naturally without repeating prior advice.
+5. MEDICAL DISCLAIMER: Avoid diagnostic statements. Focus strictly on clinical decision support, health education, and provider triage.
 
 VALIDATED KNOWLEDGE BASE GUIDELINES:
 {self.knowledge_text}
 
 CRITICAL FORMATTING RULES:
 1. Base your dietary and lifestyle advice directly on the validated knowledge base guidelines above.
-2. Address specific patient metrics (e.g., cholesterol, blood pressure, BMI, active symptoms).
-3. Always respond with a strictly formatted JSON object matching the schema below:
+2. Use clean Markdown bullet points (`- ` or `* `) for key recommendations, questions, or action items.
+3. CROSS-ASSISTANT REFERRAL & QUERY ROUTING RULES:
+   - If the patient asks for detailed explanations of their machine learning risk scores, SHAP factors, or model weights, provide a brief summary and attach a TAB_NAVIGATION_ACTION widget targeting "diabetes_explainer" with prompt_text "Explain my risk factors".
+   - If the patient asks where to seek medical care, about hospital facilities, or emergency triage, provide a brief summary and attach a TAB_NAVIGATION_ACTION widget targeting "care_navigator" with prompt_text "Where should I go for care?".
+4. Always respond with a strictly formatted JSON object matching the schema below:
 
 REQUIRED JSON SCHEMA:
 {{
   "message": "<Markdown explanation under 150 words with direct 'you/your' tone and bullet points>",
   "widget": {{
-    "type": "COPYABLE_DOCTOR_QUESTIONS" | "SHAP_FACTOR_CARD" | "TRIAGE_CHECKLIST",
+    "type": "COPYABLE_DOCTOR_QUESTIONS" | "SHAP_FACTOR_CARD" | "TRIAGE_CHECKLIST" | "TAB_NAVIGATION_ACTION" | null,
     "data": {{ ... }}
   }}
 }}
@@ -87,11 +94,21 @@ WIDGET SPECIFICATIONS:
   data format: {{ "overall_risk": "{context.ml_scores.cad_risk_level or 'Moderate'}", "factors": [ {{"name": "Cholesterol", "value": "{context.form_metrics.cholesterol or 'High'} mg/dL", "impact": "+0.350", "type": "risk_driver"}} ] }}
 - If type is "TRIAGE_CHECKLIST":
   data format: {{ "title": "Heart Health Action Checklist", "urgency": "Routine Monitoring", "tasks": [ {{"id": "1", "task": "Swap palm oil/butter for olive oil in daily meals", "completed": false}} ] }}
+- If type is "TAB_NAVIGATION_ACTION":
+  data format: {{
+    "target_tab": "diabetes_explainer" | "care_navigator",
+    "button_label": "🥗 Ask Results Explainer" | "🏥 Ask Care Navigator",
+    "prompt_text": "<Question string to send to target assistant>",
+    "description": "<Brief 1-line reason for cross-referral>"
+  }}
 """
 
         prompt = f"""
 PATIENT CONTEXT:
 {context.to_prompt_summary()}
+
+CONVERSATION HISTORY SUMMARY:
+{history_str}
 
 PATIENT QUESTION:
 {query_str}

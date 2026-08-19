@@ -31,11 +31,11 @@
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg: #0f172a;
-  --bg-accent: #1e293b;
-  --surface: #1e293b;
-  --surface-muted: #334155;
-  --border: #475569;
+  --bg: #0b0f19;
+  --bg-accent: #151c2e;
+  --surface: #151c2e;
+  --surface-muted: #1e293b;
+  --border: #2e3a50;
   --text: #f8fafc;
   --text-muted: #94a3b8;
   --accent: #14b8a6;
@@ -88,7 +88,7 @@ button {
 .app-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 24px 0 48px;
+  padding: 24px 20px 48px;
   border-radius: 20px;
 }
 
@@ -826,12 +826,12 @@ button {
   align-items: center;
   gap: 12px;
   padding: 12px 18px;
-  border: 1px solid #1E293B;
-  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
   border-radius: 12px;
   font-size: 0.88rem;
   line-height: 1.5;
-  color: #94A3B8;
+  color: var(--text-muted);
   margin-bottom: 20px;
 }
 

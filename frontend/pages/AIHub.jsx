@@ -7,6 +7,7 @@ import { loadStoredAIMessages, saveStoredAIMessages } from '../services/storage'
 export default function AIHub({
   assessmentState,
   diabetesPrediction,
+  diabetesForm,
   readmissionPrediction,
   readmissionForm,
   subsidyTier,
@@ -19,6 +20,357 @@ export default function AIHub({
   // Subsidy tier is auto-populated from readmission form's CHAS tier; not user-editable
   const activeSubsidy = readmissionForm?.chas_tier || 'Not provided';
 
+  // Extract model states
+  const cadPred = assessmentState?.prediction?.backendPrediction || assessmentState?.prediction || {};
+  const cadForm = assessmentState?.assessmentForm || assessmentState?.assessment || {};
+
+  // Calculate loaded data status badges
+  const isCadLoaded = Boolean(assessmentState?.prediction);
+  const isDiabetesLoaded = Boolean(diabetesPrediction);
+  const isReadmissionLoaded = Boolean(readmissionPrediction);
+
+  // Feature Label & Value Translation Maps
+  const CAD_LABELS = {
+    chol: 'Serum Cholesterol',
+    trestbps: 'Resting Blood Pressure',
+    thalach: 'Max Heart Rate',
+    oldpeak: 'ST Depression (Oldpeak)',
+    cp: 'Chest Pain Category',
+    ca: 'Major Vessels Count',
+    exang: 'Exercise-Induced Angina',
+    age: 'Age',
+    sex: 'Biological Sex',
+    fbs: 'Fasting Blood Sugar',
+    restecg: 'Resting ECG Findings',
+    slope: 'ST Segment Slope',
+    thal: 'Thalassemia Category'
+  };
+
+  const DIABETES_FACTOR_LABELS = {
+    GenHlth: 'General Health Rating',
+    HighBP: 'High Blood Pressure',
+    BMI: 'Body Mass Index (BMI)',
+    HighChol: 'High Cholesterol',
+    Age: 'Age Group',
+    DiffWalk: 'Difficulty Walking / Stairs',
+    PhysActivity: 'Physical Activity',
+    Smoker: 'Smoking History',
+    HeartDiseaseorAttack: 'Heart Condition / Attack',
+    Fruits: 'Daily Fruit Intake',
+    Veggies: 'Daily Veggie Intake'
+  };
+
+  const READMISSION_FEATURE_LABELS = {
+    number_inpatient: 'Inpatient Admissions (Past 1 Year)',
+    number_emergency: 'Emergency Visits (Past 1 Year)',
+    number_outpatient: 'Outpatient Visits (Past 1 Year)',
+    prior_admissions: 'Prior Hospital Admissions',
+    time_in_hospital: 'Hospital Stay Duration',
+    num_medications: 'Prescribed Medications Count',
+    medication_count: 'Prescribed Medications Count',
+    comorbidity_count: 'Comorbidity Count',
+    number_diagnoses: 'Number of Diagnoses',
+    num_lab_procedures: 'Lab Procedures Conducted',
+    discharge_disposition_id: 'Discharge Disposition',
+    chas_tier: 'CHAS Subsidy Tier'
+  };
+
+  const CP_LABELS = { 1: 'Typical Angina (1)', 2: 'Atypical Angina (2)', 3: 'Non-anginal Pain (3)', 4: 'Asymptomatic (4)' };
+  const RESTECG_LABELS = { 0: 'Normal (0)', 1: 'ST-T Abnormality (1)', 2: 'LV Hypertrophy (2)' };
+  const SLOPE_LABELS = { 1: 'Upsloping (1)', 2: 'Flat (2)', 3: 'Downsloping (3)' };
+  const THAL_LABELS = { 3: 'Normal (3)', 6: 'Fixed Defect (6)', 7: 'Reversible Defect (7)' };
+  const GENHLTH_LABELS = { 1: 'Excellent (1/5)', 2: 'Very Good (2/5)', 3: 'Good (3/5)', 4: 'Fair (4/5)', 5: 'Poor (5/5)' };
+  const AGE_LABELS = {
+    1: '18–24 y/o (Group 1)', 2: '25–29 y/o (Group 2)', 3: '30–34 y/o (Group 3)',
+    4: '35–39 y/o (Group 4)', 5: '40–44 y/o (Group 5)', 6: '45–49 y/o (Group 6)',
+    7: '50–54 y/o (Group 7)', 8: '55–59 y/o (Group 8)', 9: '60–64 y/o (Group 9)',
+    10: '65–69 y/o (Group 10)', 11: '70–74 y/o (Group 11)', 12: '75–79 y/o (Group 12)', 13: '80+ y/o (Group 13)'
+  };
+
+  function getCadFactorValue(rawKey, item) {
+    if (item.value != null && String(item.value).toLowerCase() !== 'observed') {
+      return String(item.value);
+    }
+    const keyLower = String(rawKey).toLowerCase();
+
+    // Extract embedded value in parenthetical e.g. "Chest Pain (Asymptomatic)" or "Resting ECG (Normal)"
+    const parenMatch = String(rawKey).match(/\(([^)]+)\)/);
+    if (parenMatch && !['cad', 'diabetes', 'readmission'].includes(parenMatch[1].toLowerCase())) {
+      return parenMatch[1];
+    }
+
+    if (keyLower.includes('chest pain') || keyLower === 'cp') {
+      const v = cadForm.cp;
+      return v != null ? (CP_LABELS[v] || `Type ${v}`) : null;
+    }
+    if (keyLower.includes('vessel') || keyLower === 'ca') {
+      const v = cadForm.ca;
+      return v != null ? `${v} vessel(s)` : null;
+    }
+    if (keyLower.includes('angina') || keyLower === 'exang') {
+      const v = cadForm.exang;
+      return v != null ? (Number(v) === 1 ? 'Yes' : 'No') : null;
+    }
+    if (keyLower.includes('cholesterol') || keyLower === 'chol') {
+      const v = cadForm.chol;
+      return v != null ? `${v} mg/dL` : null;
+    }
+    if (keyLower.includes('blood pressure') || keyLower === 'trestbps') {
+      const v = cadForm.trestbps;
+      return v != null ? `${v} mmHg` : null;
+    }
+    if (keyLower.includes('heart rate') || keyLower === 'thalach') {
+      const v = cadForm.thalach;
+      return v != null ? `${v} bpm` : null;
+    }
+    if (keyLower.includes('depression') || keyLower === 'oldpeak') {
+      const v = cadForm.oldpeak;
+      return v != null ? `${v}` : null;
+    }
+    if (keyLower.includes('fasting') || keyLower === 'fbs') {
+      const v = cadForm.fbs;
+      return v != null ? (Number(v) === 1 ? 'Elevated (>120 mg/dL)' : 'Normal (<=120 mg/dL)') : null;
+    }
+    if (keyLower.includes('ecg') || keyLower === 'restecg') {
+      const v = cadForm.restecg;
+      return v != null ? (RESTECG_LABELS[v] || String(v)) : null;
+    }
+    if (keyLower.includes('slope')) {
+      const v = cadForm.slope;
+      return v != null ? (SLOPE_LABELS[v] || String(v)) : null;
+    }
+    if (keyLower.includes('thal')) {
+      const v = cadForm.thal;
+      return v != null ? (THAL_LABELS[v] || String(v)) : null;
+    }
+    if (keyLower.includes('age')) {
+      const v = cadForm.age;
+      return v != null ? `${v} years old` : null;
+    }
+    if (keyLower.includes('sex')) {
+      const v = cadForm.sex;
+      return v != null ? (Number(v) === 1 ? 'Male' : 'Female') : null;
+    }
+    return null;
+  }
+
+  function getDiabetesFactorValue(rawKey, item) {
+    if (item.value != null && String(item.value).toLowerCase() !== 'observed') {
+      return String(item.value);
+    }
+    const keyLower = String(rawKey).toLowerCase();
+
+    if (keyLower.includes('genhlth') || keyLower.includes('general health')) {
+      const v = diabetesForm?.GenHlth;
+      return v != null ? (GENHLTH_LABELS[v] || String(v)) : null;
+    }
+    if (keyLower.includes('bmi')) {
+      const v = diabetesForm?.BMI;
+      return v != null ? `${v}` : null;
+    }
+    if (keyLower.includes('age')) {
+      const v = diabetesForm?.Age;
+      return v != null ? (AGE_LABELS[v] || `Group ${v}`) : null;
+    }
+
+    const formVal = diabetesForm?.[rawKey];
+    if (formVal != null) {
+      if (['HighBP', 'HighChol', 'PhysActivity', 'DiffWalk', 'Smoker', 'HeartDiseaseorAttack', 'Fruits', 'Veggies'].includes(rawKey)) {
+        return Number(formVal) === 1 || formVal === '1' ? 'Yes' : 'No';
+      }
+      return String(formVal);
+    }
+    return null;
+  }
+
+  function getReadmissionFactorValue(rawKey, item) {
+    const rawVal = item.feature_value ?? item.value;
+    if (rawVal != null && String(rawVal).toLowerCase() !== 'observed') {
+      return String(rawVal);
+    }
+    const keyLower = String(rawKey).toLowerCase();
+
+    if (keyLower.includes('inpatient') || keyLower.includes('prior_admissions')) {
+      const v = readmissionForm?.number_inpatient ?? readmissionForm?.prior_admissions;
+      return v != null ? `${v}` : null;
+    }
+    if (keyLower.includes('emergency')) {
+      const v = readmissionForm?.number_emergency;
+      return v != null ? `${v}` : null;
+    }
+    if (keyLower.includes('outpatient')) {
+      const v = readmissionForm?.number_outpatient;
+      return v != null ? `${v}` : null;
+    }
+    if (keyLower.includes('medication')) {
+      const v = readmissionForm?.num_medications ?? readmissionForm?.medication_count;
+      return v != null ? `${v}` : null;
+    }
+    if (keyLower.includes('stay') || keyLower.includes('hospital')) {
+      const v = readmissionForm?.time_in_hospital;
+      return v != null ? `${v} day(s)` : null;
+    }
+    if (keyLower.includes('comorb')) {
+      const v = readmissionForm?.comorbidity_count;
+      return v != null ? `${v}` : null;
+    }
+    if (keyLower.includes('lab')) {
+      const v = readmissionForm?.num_lab_procedures;
+      return v != null ? `${v}` : null;
+    }
+    if (keyLower.includes('diagnos')) {
+      const v = readmissionForm?.number_diagnoses ?? readmissionForm?.diabetes_diag_count;
+      return v != null ? `${v}` : null;
+    }
+
+    const formVal = readmissionForm?.[rawKey] ?? readmissionForm?.raw_fields?.[rawKey];
+    if (formVal != null) {
+      if (Array.isArray(formVal)) return formVal.join(', ');
+      return String(formVal);
+    }
+    return null;
+  }
+
+  function normalizeCadFactors(factors = []) {
+    return factors.map((item, idx) => {
+      const rawKey = item.feature || item.name || item.key || `Factor ${idx + 1}`;
+      const humanLabel = CAD_LABELS[rawKey] || rawKey;
+      const name = humanLabel.includes('(CAD)') ? humanLabel : `${humanLabel} (CAD)`;
+      const numImpact = typeof item.impact === 'number' ? item.impact : (typeof item.shap_value === 'number' ? item.shap_value : (parseFloat(String(item.impact).replace('+', '')) || 0));
+      const impactStr = numImpact >= 0 ? `+${numImpact.toFixed(3)}` : numImpact.toFixed(3);
+      const valStr = getCadFactorValue(rawKey, item);
+      return {
+        module: 'cad',
+        rawKey,
+        name,
+        value: valStr,
+        impact: impactStr,
+        rawImpact: numImpact,
+        type: item.direction === 'negative' || numImpact < 0 ? 'protective_factor' : 'risk_driver'
+      };
+    });
+  }
+
+  function normalizeReadmissionFactors(factors = []) {
+    return factors.map((item, idx) => {
+      const rawKey = item.feature || item.feature_name || item.name || `Factor ${idx + 1}`;
+      const humanLabel = READMISSION_FEATURE_LABELS[rawKey] || rawKey;
+      const name = humanLabel.includes('(Readmission)') ? humanLabel : `${humanLabel} (Readmission)`;
+      const numImpact = typeof item.shap_value === 'number' ? item.shap_value : (typeof item.impact === 'number' ? item.impact : (parseFloat(String(item.impact).replace('+', '')) || 0));
+      const impactStr = typeof numImpact === 'number'
+        ? (numImpact >= 0 ? `+${numImpact.toFixed(3)}` : numImpact.toFixed(3))
+        : String(rawImpact);
+      const valStr = getReadmissionFactorValue(rawKey, item);
+      return {
+        module: 'readmission',
+        rawKey,
+        name,
+        value: valStr,
+        impact: impactStr,
+        rawImpact: numImpact,
+        type: numImpact < 0 ? 'protective_factor' : 'risk_driver'
+      };
+    });
+  }
+
+  function normalizeDiabetesFactors(factors = []) {
+    return factors.map((item, idx) => {
+      if (typeof item === 'string') {
+        const humanLabel = DIABETES_FACTOR_LABELS[item] || item;
+        const valStr = getDiabetesFactorValue(item, {});
+        return { module: 'diabetes', rawKey: item, name: `${humanLabel} (Diabetes)`, value: valStr, impact: '+0.200', rawImpact: 0.200, type: 'risk_driver' };
+      }
+      const rawKey = item.name || item.feature || `Factor ${idx + 1}`;
+      const humanLabel = DIABETES_FACTOR_LABELS[rawKey] || rawKey;
+      const name = humanLabel.includes('(Diabetes)') ? humanLabel : `${humanLabel} (Diabetes)`;
+      const numImpact = typeof item.impact === 'number' ? item.impact : (typeof item.shap_value === 'number' ? item.shap_value : (parseFloat(String(item.impact).replace('+', '')) || 0));
+      const impactStr = numImpact >= 0 ? `+${numImpact.toFixed(3)}` : numImpact.toFixed(3);
+      const valStr = getDiabetesFactorValue(rawKey, item);
+      return {
+        module: 'diabetes',
+        rawKey,
+        name,
+        value: valStr,
+        impact: impactStr,
+        rawImpact: numImpact,
+        type: item.type || (numImpact < 0 ? 'protective_factor' : 'risk_driver')
+      };
+    });
+  }
+
+  const cadFactorsList = cadPred.topFactors || cadPred.top_factors || [];
+  const readmissionFactorsList = readmissionPrediction?.shap_values || readmissionPrediction?.top_positive_features || [];
+  const diabetesFactorsList = diabetesPrediction?.top_factors || [];
+
+  const combinedShapFactors = [
+    ...normalizeDiabetesFactors(diabetesFactorsList),
+    ...normalizeCadFactors(cadFactorsList),
+    ...normalizeReadmissionFactors(readmissionFactorsList)
+  ];
+
+  // Synthesize multi-model overall risk label and probability badges
+  function computeOverallRiskSummary() {
+    const activeResults = [];
+    const probs = [];
+
+    if (isCadLoaded) {
+      const lvl = cadPred.riskLevel || cadPred.risk_level || 'Assessed Risk';
+      const pct = cadPred.riskPercent || (cadPred.riskProbability ? `${(cadPred.riskProbability * 100).toFixed(1)}%` : null);
+      activeResults.push({ module: 'CAD', level: lvl, pct });
+      if (pct) probs.push(`CAD: ${pct}`);
+    }
+
+    if (isDiabetesLoaded) {
+      const lvl = diabetesPrediction?.risk_label || diabetesPrediction?.risk_band || 'Assessed Risk';
+      const prob = diabetesPrediction?.risk_probability ? `${(diabetesPrediction.risk_probability * 100).toFixed(1)}%` : null;
+      activeResults.push({ module: 'Diabetes', level: lvl, pct: prob });
+      if (prob) probs.push(`Dia: ${prob}`);
+    }
+
+    if (isReadmissionLoaded) {
+      const lvl = readmissionPrediction?.urgency_level || readmissionPrediction?.risk_category || 'Assessed Urgency';
+      const score = readmissionPrediction?.clinical_severity_score ? `${readmissionPrediction.clinical_severity_score}/100` : null;
+      activeResults.push({ module: 'Readm', level: lvl, pct: score });
+      if (score) probs.push(`Readm: ${score}`);
+    }
+
+    if (activeResults.length === 0) {
+      return { overallRiskLabel: 'Assessed Risk', overallProbLabel: '' };
+    }
+
+    if (activeResults.length === 1) {
+      return {
+        overallRiskLabel: `${activeResults[0].module}: ${activeResults[0].level}`,
+        overallProbLabel: activeResults[0].pct || ''
+      };
+    }
+
+    const hasHigh = activeResults.some(r => /high|immediate/i.test(r.level));
+    const hasMod = activeResults.some(r => /mod|increased|surveillance/i.test(r.level));
+    const overallRiskLabel = hasHigh ? 'High Risk' : (hasMod ? 'Moderate Risk' : 'Low Risk');
+    const overallProbLabel = probs.join(' | ');
+
+    return { overallRiskLabel, overallProbLabel };
+  }
+
+  const { overallRiskLabel, overallProbLabel } = computeOverallRiskSummary();
+
+  // Extract CAD risk level and percent string robustly
+  const cadRiskLevel =
+    cadPred.riskLevel ||
+    cadPred.risk_level ||
+    (typeof cadPred.prediction === 'number'
+      ? (cadPred.prediction === 1 ? 'At Risk' : 'Low Risk')
+      : (isCadLoaded ? 'Assessed Risk' : null));
+
+  const cadProbStr =
+    cadPred.riskPercent ||
+    (typeof cadPred.risk_percent === 'number' ? `${cadPred.risk_percent.toFixed(1)}%` : null) ||
+    (typeof cadPred.riskProbability === 'number' ? `${(cadPred.riskProbability * 100).toFixed(1)}%` : null) ||
+    (typeof cadPred.risk_probability === 'number' ? `${(cadPred.risk_probability * 100).toFixed(1)}%` : null) ||
+    (typeof cadPred.raw_probability === 'number' ? `${(cadPred.raw_probability * 100).toFixed(1)}%` : null) ||
+    '';
+
   const defaultMessages = {
     cad_coach: [
       {
@@ -27,7 +379,7 @@ export default function AIHub({
         widget: {
           type: 'COPYABLE_DOCTOR_QUESTIONS',
           data: {
-            title: 'Cardiovascular Health Questions for Your Doctor',
+            title: 'Heart Health Questions for Your Doctor',
             questions: [
               'What dietary changes will help lower my cholesterol?',
               'How frequently should I monitor my blood pressure at home?',
@@ -40,13 +392,18 @@ export default function AIHub({
     diabetes_explainer: [
       {
         role: 'assistant',
-        content: "Welcome! I'm your **Diabetes & Lifestyle Coach (SHAP Explainer)**. I translate machine learning feature contributions into plain-language insights so you can target your risk factors effectively.",
-        widget: diabetesPrediction?.top_factors ? {
+        content: "Welcome! I'm your **Clinical Results & SHAP Explainer**. I translate machine learning risk assessment scores and feature contributions (across CAD, Diabetes, and Hospital Readmission) into plain-language insights so you can target your risk factors effectively.",
+        widget: combinedShapFactors.length > 0 ? {
           type: 'SHAP_FACTOR_CARD',
           data: {
-            overall_risk: diabetesPrediction.risk_label || 'Assessed Risk',
-            probability: String(diabetesPrediction.risk_probability || ''),
-            factors: diabetesPrediction.top_factors
+            overall_risk: overallRiskLabel || 'Assessed Risk',
+            probability: overallProbLabel || '',
+            module_risks: {
+              cad: isCadLoaded ? { risk: cadRiskLevel, prob: cadProbStr } : null,
+              diabetes: isDiabetesLoaded ? { risk: diabetesPrediction?.risk_band || diabetesPrediction?.risk_label || 'Assessed Risk', prob: diabetesPrediction?.risk_probability ? `${(diabetesPrediction.risk_probability * 100).toFixed(1)}%` : '' } : null,
+              readmission: isReadmissionLoaded ? { risk: readmissionPrediction?.urgency_level || 'Assessed Urgency', prob: readmissionPrediction?.clinical_severity_score ? `Score: ${readmissionPrediction.clinical_severity_score}/100` : '' } : null
+            },
+            factors: combinedShapFactors
           }
         } : null
       }
@@ -89,8 +446,8 @@ export default function AIHub({
   const tabConfig = {
     cad_coach: {
       id: 'cad_coach',
-      label: '🫀 CAD Specialist',
-      title: 'CAD Specialist & Lifestyle Coach',
+      label: '🫀 Lifestyle Coach',
+      title: 'Lifestyle Coach',
       color: '#3b82f6',
       quickChips: [
         'Suggest a low-sodium meal plan',
@@ -99,12 +456,12 @@ export default function AIHub({
     },
     diabetes_explainer: {
       id: 'diabetes_explainer',
-      label: '🥗 Diabetes & Lifestyle Coach',
-      title: 'Diabetes & Lifestyle Coach (SHAP Explainer)',
+      label: '🥗 Results Explainer',
+      title: 'Results Explainer',
       color: '#10b981',
       quickChips: [
-        'Explain my heart SHAP factors',
-        'Why is my score 75.8%?'
+        'Explain my risk factors',
+        'Summarize my overall results'
       ]
     },
     care_navigator: {
@@ -120,11 +477,6 @@ export default function AIHub({
   };
 
   const currentTab = tabConfig[activeTab];
-
-  // Calculate loaded data status badges
-  const isCadLoaded = Boolean(assessmentState?.prediction);
-  const isDiabetesLoaded = Boolean(diabetesPrediction);
-  const isReadmissionLoaded = Boolean(readmissionPrediction);
 
   function handleSubsidyChange(e) {
     const newTier = e.target.value;
@@ -163,50 +515,62 @@ export default function AIHub({
 
   // Construct patient context
   function getUnifiedPayload() {
+    const cadRiskLevel = cadPred.riskLevel || cadPred.risk_level || (isCadLoaded ? 'Assessed Risk' : null);
+    const cadProb = cadPred.riskPercent || (cadPred.riskProbability ? `${(cadPred.riskProbability * 100).toFixed(1)}%` : null) || (cadPred.probability ? `${(cadPred.probability * 100).toFixed(1)}%` : null);
+
     return {
       demographics: {
-        age: assessmentState?.assessmentForm?.age || readmissionForm?.age,
-        gender: assessmentState?.assessmentForm?.gender || readmissionForm?.gender,
+        age: cadForm.age || (diabetesForm?.Age ? String(diabetesForm.Age) : null) || readmissionForm?.age,
+        gender: cadForm.gender || (cadForm.sex !== undefined ? String(cadForm.sex) : null) || (diabetesForm?.Sex !== undefined ? String(diabetesForm.Sex) : null) || readmissionForm?.gender,
         subsidy_tier: activeSubsidy
       },
       form_metrics: {
-        blood_pressure: assessmentState?.assessmentForm?.bp || (assessmentState?.assessmentForm?.trestbps ? `${assessmentState.assessmentForm.trestbps}` : null),
-        cholesterol: assessmentState?.assessmentForm?.cholesterol || assessmentState?.assessmentForm?.chol,
-        bmi: assessmentState?.assessmentForm?.bmi,
-        glucose: assessmentState?.assessmentForm?.glucose,
-        active_symptoms: readmissionForm?.symptoms || []
+        blood_pressure: cadForm.bp || (cadForm.trestbps ? `${cadForm.trestbps} mmHg` : null),
+        cholesterol: cadForm.cholesterol || (cadForm.chol ? `${cadForm.chol} mg/dL` : null),
+        bmi: diabetesForm?.BMI || cadForm.bmi,
+        glucose: diabetesForm?.glucose || cadForm.glucose || (cadForm.fbs === 1 || cadForm.fbs === '1' ? '> 120 mg/dL' : null),
+        active_symptoms: readmissionForm?.symptoms || [],
+
+        // Full Raw Modules
+        cad_form: cadForm,
+        diabetes_form: diabetesForm || {},
+        readmission_form: readmissionForm || {}
       },
       ml_scores: {
-        cad_risk_level: assessmentState?.prediction?.risk_level,
-        cad_probability: assessmentState?.prediction?.probability,
+        cad_risk_level: cadRiskLevel,
+        cad_probability: cadProb,
         diabetes_risk_level: diabetesPrediction?.risk_label || diabetesPrediction?.risk_band,
         diabetes_probability: diabetesPrediction?.risk_probability,
-        readmission_risk_level: readmissionPrediction?.urgency_level,
+        readmission_risk_level: readmissionPrediction?.urgency_level || readmissionPrediction?.risk_category,
         readmission_severity_score: readmissionPrediction?.clinical_severity_score
       },
-      shap_factors: diabetesPrediction?.top_factors || []
+      shap_factors: combinedShapFactors
     };
   }
 
-  async function handleSend(promptText) {
+  async function handleSend(promptText, targetTabOverride = null) {
+    const targetTabKey = targetTabOverride || activeTab;
     const query = promptText || inputQuery;
     if (!query.trim() || loading) return;
 
     const userMsg = { role: 'user', content: query };
+    const tabHistory = messages[targetTabKey] || [];
+
     setMessages(prev => ({
       ...prev,
-      [activeTab]: [...prev[activeTab], userMsg]
+      [targetTabKey]: [...(prev[targetTabKey] || []), userMsg]
     }));
 
-    if (!promptText) setInputQuery('');
+    if (!promptText && !targetTabOverride) setInputQuery('');
     setLoading(true);
 
     try {
       const rawInput = getUnifiedPayload();
       const res = await sendGenAIQuery({
         userQuery: query,
-        assistantType: activeTab,
-        rawInput
+        assistantType: targetTabKey,
+        rawInput,
+        history: tabHistory
       });
 
       const assistantMsg = {
@@ -217,7 +581,7 @@ export default function AIHub({
 
       setMessages(prev => ({
         ...prev,
-        [activeTab]: [...prev[activeTab], assistantMsg]
+        [targetTabKey]: [...(prev[targetTabKey] || []), assistantMsg]
       }));
     } catch (err) {
       console.error("AI Query Error:", err);
@@ -228,15 +592,25 @@ export default function AIHub({
       };
       setMessages(prev => ({
         ...prev,
-        [activeTab]: [...prev[activeTab], errorMsg]
+        [targetTabKey]: [...(prev[targetTabKey] || []), errorMsg]
       }));
     } finally {
       setLoading(false);
     }
   }
 
+  function handleCrossTabNavigate(targetTab, promptText) {
+    if (!tabConfig[targetTab]) return;
+    setActiveTab(targetTab);
+    if (promptText) {
+      setTimeout(() => {
+        handleSend(promptText, targetTab);
+      }, 50);
+    }
+  }
+
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '16px', fontFamily: 'inherit' }}>
+    <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '0px', fontFamily: 'inherit' }}>
       {/* 1. Top Tab Bar */}
       <div style={{
         display: 'flex',
@@ -289,7 +663,7 @@ export default function AIHub({
         fontSize: '0.85rem'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: '700', color: 'var(--text-muted, #94a3b8)' }}>Clinical Data Status:</span>
+          <span style={{ fontWeight: '700', color: 'var(--text-muted, #94a3b8)' }}>Assessment Status:</span>
           
           <span style={{
             padding: '2px 8px',
@@ -300,7 +674,7 @@ export default function AIHub({
             fontSize: '0.78rem',
             fontWeight: '600'
           }}>
-            {isCadLoaded ? '✓ CAD Data Loaded' : '✗ CAD Pending'}
+            {isCadLoaded ? 'CAD Assessed' : 'CAD Unassessed'}
           </span>
 
           <span style={{
@@ -312,7 +686,7 @@ export default function AIHub({
             fontSize: '0.78rem',
             fontWeight: '600'
           }}>
-            {isDiabetesLoaded ? '✓ Diabetes Data Loaded' : '✗ Diabetes Pending'}
+            {isDiabetesLoaded ? 'Diabetes Assessed' : 'Diabetes Unassessed'}
           </span>
 
           <span style={{
@@ -324,7 +698,7 @@ export default function AIHub({
             fontSize: '0.78rem',
             fontWeight: '600'
           }}>
-            {isReadmissionLoaded ? '✓ Readmission Data Loaded' : '✗ Readmission Pending'}
+            {isReadmissionLoaded ? 'Readmission Assessed' : 'Readmission Unassessed'}
           </span>
         </div>
 
@@ -339,9 +713,9 @@ export default function AIHub({
               border: '1px solid var(--border, #475569)',
               fontSize: '0.8rem',
               fontWeight: '600',
-              cursor: 'not-allowed'
+              cursor: 'help'
             }}
-            title="Auto-filled from patient form CHAS tier"
+            title="CHAS tier is set from your Readmission assessment"
           >
             {activeSubsidy || 'Not provided'}
           </span>
@@ -415,13 +789,23 @@ export default function AIHub({
                   fontSize: '0.9rem',
                   lineHeight: 1.5
                 }}>
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      ul: ({ node, ...props }) => <ul style={{ margin: '8px 0', paddingLeft: '20px', listStyleType: 'disc' }} {...props} />,
+                      ol: ({ node, ...props }) => <ol style={{ margin: '8px 0', paddingLeft: '20px', listStyleType: 'decimal' }} {...props} />,
+                      li: ({ node, ...props }) => <li style={{ marginBottom: '4px' }} {...props} />,
+                      p: ({ node, ...props }) => <p style={{ margin: '6px 0', lineHeight: '1.5' }} {...props} />
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
                   
                   {/* Rich-Media Component Renderer */}
                   {isAssistant && msg.widget && (
                     <WidgetRenderer
                       widget={msg.widget}
                       onUpdateWidgetData={(newWidgetData) => handleUpdateWidgetData(idx, newWidgetData)}
+                      onNavigateTab={(targetTab, promptText) => handleCrossTabNavigate(targetTab, promptText)}
                     />
                   )}
                 </div>

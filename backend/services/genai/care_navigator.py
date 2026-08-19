@@ -6,15 +6,20 @@ Triage Care Guidance and Dynamic Google Maps Link Generator for Healthcare Navig
 from urllib.parse import quote_plus
 from typing import Dict, Any, Optional, List
 from .client import genai_client
-from .context_builder import UnifiedPatientContext, build_unified_context
+from .context_builder import UnifiedPatientContext, build_unified_context, format_conversation_history
 
 
-def build_google_maps_url(subsidy_tier: str, facility_type: str = "Polyclinic") -> str:
+def build_google_maps_url(subsidy_tier: Optional[str], facility_type: str = "Polyclinic") -> str:
     """
-    Constructs dynamic Google Maps search URLs matching the exact pattern:
+    Constructs dynamic Google Maps search URLs matching the pattern:
     https://www.google.com/maps/search/?api=1&query={Subsidy_Tier}+{Facility_Type}+near+me
+    Omits subsidy tier if unprovided or not specified.
     """
-    query_str = f"{subsidy_tier} {facility_type} near me"
+    tier_str = (subsidy_tier or "").strip()
+    if not tier_str or tier_str.lower() in ("not provided", "unprovided", "none", "n/a", "not_provided"):
+        query_str = f"{facility_type} near me"
+    else:
+        query_str = f"{tier_str} {facility_type} near me"
     encoded_query = quote_plus(query_str)
     return f"https://www.google.com/maps/search/?api=1&query={encoded_query}"
 
@@ -28,12 +33,14 @@ class CareNavigatorService:
     def generate_navigation_advice(
         self,
         context: UnifiedPatientContext,
-        user_query: Optional[str] = None
+        user_query: Optional[str] = None,
+        history: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
         Generates care triage advice with dynamic CLINIC_MAP_LINK or TRIAGE_CHECKLIST widget.
         """
         query_str = user_query or "Where should I seek medical care given my current symptoms and subsidy tier?"
+        history_str = format_conversation_history(history)
 
         subsidy = context.demographics.subsidy_tier or "CHAS Green"
         urgency = context.ml_scores.readmission_risk_level or "Routine Monitoring"
@@ -48,9 +55,11 @@ Your role is to evaluate the patient's symptoms, clinical severity scores, and s
 to guide them to the right healthcare facility (CHAS GP, Polyclinic, A&E).
 
 GLOBAL SYSTEM PERSONA & RESPONSE TONE RULES:
-1. CONCISENESS: For simple or specific queries, provide direct, actionable answers strictly UNDER 150 WORDS using clean Markdown bullet points.
+1. CONCISENESS & BULLET POINTS: For simple or specific queries, provide direct, actionable answers strictly UNDER 150 WORDS using clean Markdown bullet points (`- ` or `* `).
 2. DIRECT SECOND-PERSON TONE: Always address the patient directly using "you" / "your". NEVER use third-person clinical jargon such as "the patient presents with..." or "the patient's score is...".
-3. MEDICAL DISCLAIMER: Avoid diagnostic statements. Focus strictly on decision support, patient education, and provider triage.
+3. NO REPETITIVE SYMPTOM EXPLANATION: Do NOT repeat or re-explain the patient's initial symptoms, clinical severity score, or triage background in follow-up messages unless the user specifically asks about them or they are directly required for the current query.
+4. FOLLOW-UP HANDLING: Refer to the conversation history to track context and answer follow-up questions naturally without repeating previous advice.
+5. MEDICAL DISCLAIMER: Avoid diagnostic statements. Focus strictly on decision support, patient education, and provider triage.
 
 SINGAPORE HEALTHCARE KNOWLEDGE BASE & LINKS:
 1. CHAS (Community Health Assist Scheme): Subsidies for chronic conditions at participating GP clinics. Check eligibility at [CHAS](https://www.chas.sg).
@@ -68,15 +77,19 @@ DYNAMIC MAPS LINK URL:
 
 CRITICAL RULES:
 1. Provide clear, empathetic triage guidance based on the patient's clinical severity score ({context.ml_scores.readmission_severity_score or 'N/A'}/100) and symptoms ({', '.join(symptoms) if symptoms else 'None'}).
-2. The patient's subsidy tier is: {subsidy}. Reference this when suggesting care pathways.
+2. The patient's subsidy tier is: {subsidy if subsidy and subsidy.lower() not in ('not provided', 'none', 'unprovided') else 'General Singapore Subsidized Care'}. Reference this when suggesting care pathways.
 3. If urgency is "Immediate Intervention", advise emergency care or calling 995.
-4. Return ONLY a valid JSON object matching the required schema below:
+4. Use clean Markdown bullet points (`- ` or `* `) when listing steps or recommendations.
+5. CROSS-ASSISTANT REFERRAL RULES (Use sparingly):
+   - If the user asks specifically about diet, meals, nutrition, or cardiovascular exercise, provide a brief answer and attach a TAB_NAVIGATION_ACTION widget targeting "cad_coach" with prompt_text "What foods can I eat?".
+   - If the user asks for detailed mathematical explanations of their risk scores or SHAP weights, attach a TAB_NAVIGATION_ACTION widget targeting "diabetes_explainer" with prompt_text "Explain my risk factors".
+6. Return ONLY a valid JSON object matching the required schema below:
 
 REQUIRED JSON SCHEMA:
 {{
   "message": "<Care triage narrative markdown string under 150 words using bullet points. MUST include markdown links if schemes are mentioned.>",
   "widget": {{
-    "type": "CLINIC_MAP_LINK" | "TRIAGE_CHECKLIST",
+    "type": "CLINIC_MAP_LINK" | "TRIAGE_CHECKLIST" | "TAB_NAVIGATION_ACTION" | null,
     "data": {{ ... }}
   }}
 }}
@@ -87,7 +100,7 @@ WIDGET SPECIFICATIONS:
     "facility_type": "{facility_type}",
     "subsidy_tier": "{subsidy}",
     "url": "{maps_url}",
-    "label": "Find Nearby {subsidy} {facility_type}s"
+    "label": "Find Nearby {subsidy if subsidy and subsidy.lower() not in ('not provided', 'none') else ''} {facility_type}s".strip()
   }}
 - If type is "TRIAGE_CHECKLIST":
   data format: {{
@@ -98,12 +111,22 @@ WIDGET SPECIFICATIONS:
       {{"id": "2", "task": "Bring current discharge medication list to consultation", "completed": false}}
     ]
   }}
+- If type is "TAB_NAVIGATION_ACTION":
+  data format: {{
+    "target_tab": "cad_coach" | "diabetes_explainer",
+    "button_label": "🫀 Ask Lifestyle Coach" | "🥗 Ask Results Explainer",
+    "prompt_text": "<Question string to send to target assistant>",
+    "description": "<Brief 1-line reason for cross-referral>"
+  }}
 }}
 """
 
         prompt = f"""
 PATIENT CONTEXT:
 {context.to_prompt_summary()}
+
+CONVERSATION HISTORY SUMMARY:
+{history_str}
 
 PATIENT QUERY:
 {query_str}
