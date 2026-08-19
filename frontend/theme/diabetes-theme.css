@@ -59,11 +59,16 @@
   padding: var(--dia-sp-8);
 }
 
-.diabetes-scope .form-field input,
-.diabetes-scope .form-field select {
+.diabetes-scope .form-field {
   background: var(--dia-surface-elevated);
   border: 1px solid var(--dia-border);
-  border-radius: var(--dia-radius-sm);
+}
+
+.diabetes-scope .form-field input,
+.diabetes-scope .form-field select {
+  background: var(--dia-surface);
+  border: 1px solid var(--dia-border);
+  border-radius: var(--dia-radius-md);
   color: var(--dia-text);
   transition: border-color 180ms ease, background-color 180ms ease;
 }
