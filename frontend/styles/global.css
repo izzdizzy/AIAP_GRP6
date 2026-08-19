@@ -26,6 +26,11 @@
   --risk-high-text: #b91c1c;
   --risk-high-border: #fca5a5;
 
+  /* Chat Colored Emphasis Text Light Mode */
+  --chat-red: #dc2626;
+  --chat-amber: #d97706;
+  --chat-green: #059669;
+
   font-family: Inter, Segoe UI, Helvetica, Arial, sans-serif;
 }
 
@@ -55,6 +60,27 @@
   --risk-high-bg: rgba(239, 68, 68, 0.2);
   --risk-high-text: #fca5a5;
   --risk-high-border: rgba(252, 165, 165, 0.4);
+
+  /* Chat Colored Emphasis Text Dark Mode */
+  --chat-red: #f87171;
+  --chat-amber: #fbbf24;
+  --chat-green: #34d399;
+}
+
+/* Chat Colored Emphasis Classes */
+.chat-red {
+  color: var(--chat-red);
+  font-weight: 600;
+}
+
+.chat-amber {
+  color: var(--chat-amber);
+  font-weight: 600;
+}
+
+.chat-green {
+  color: var(--chat-green);
+  font-weight: 600;
 }
 
 /* Module Specific Accent Color System */

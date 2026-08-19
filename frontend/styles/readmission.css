@@ -18,21 +18,21 @@ body {
    Used for {red: text}, {amber: text}, {green: text} syntax.
    ============================================================================= */
 
-/* Red colour for urgent/critical actions - high contrast on dark background */
+/* Red colour for urgent/critical actions */
 .chat-red {
-  color: #ff6b6b;
+  color: var(--chat-red, #ff6b6b);
   font-weight: 600;
 }
 
 /* Amber/orange colour for caution or monitoring notes */
 .chat-amber {
-  color: #ffd93d;
+  color: var(--chat-amber, #ffd93d);
   font-weight: 600;
 }
 
 /* Green colour for normal/OK status or reassurance */
 .chat-green {
-  color: #6bcb77;
+  color: var(--chat-green, #6bcb77);
   font-weight: 600;
 }
 

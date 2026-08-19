@@ -71,12 +71,13 @@ VALIDATED KNOWLEDGE BASE GUIDELINES:
 {self.knowledge_text}
 
 CRITICAL FORMATTING RULES:
-1. Base your dietary and lifestyle advice directly on the validated knowledge base guidelines above.
-2. Use clean Markdown bullet points (`- ` or `* `) for key recommendations, questions, or action items.
-3. CROSS-ASSISTANT REFERRAL & QUERY ROUTING RULES:
+1. Base your dietary and lifestyle advice directly on the validated knowledge base guidelines above. If necessary, fallback to other online sources: https://moh.gov.sg, https://hpb.gov.sg, https://www.hsa.gov.sg, https://healthhub.sg, https://www.activehealth.sg
+2. Always list the source(s) of the information you're getting at the end.
+3. Use clean Markdown bullet points (`- ` or `* `) for key recommendations, questions, or action items.
+4. CROSS-ASSISTANT REFERRAL & QUERY ROUTING RULES:
    - If the patient asks for detailed explanations of their machine learning risk scores, SHAP factors, or model weights, provide a brief summary and attach a TAB_NAVIGATION_ACTION widget targeting "diabetes_explainer" with prompt_text "Explain my risk factors".
    - If the patient asks where to seek medical care, about hospital facilities, or emergency triage, provide a brief summary and attach a TAB_NAVIGATION_ACTION widget targeting "care_navigator" with prompt_text "Where should I go for care?".
-4. Always respond with a strictly formatted JSON object matching the schema below:
+5. Always respond with a strictly formatted JSON object matching the schema below:
 
 REQUIRED JSON SCHEMA:
 {{
