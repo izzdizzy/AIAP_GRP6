@@ -48,6 +48,7 @@ export default function TriageChecklistWidget({ data, onUpdateWidgetData }) {
         </div>
         {urgency && (
           <span style={{
+            marginLeft: '12px',
             padding: '3px 8px',
             borderRadius: '10px',
             fontSize: '0.7rem',

@@ -248,6 +248,10 @@ export default function UnifiedResultsCard({
       .unified-results-wrapper .urc-text-white { color: #ffffff !important; }
       .unified-results-wrapper .urc-text-bright { color: #f8fafc !important; }
       .unified-results-wrapper .urc-text-muted { color: #94a3b8 !important; }
+      .cad-scope .urc-module-title, .cad-scope .urc-module-prob { color: #60a5fa !important; }
+      .readmission-scope .urc-module-title, .readmission-scope .urc-module-prob { color: #34d399 !important; }
+      .diabetes-scope .urc-module-title, .diabetes-scope .urc-module-prob { color: #2dd4bf !important; }
+
       .unified-results-wrapper .urc-btn-secondary {
         background-color: rgba(30, 41, 59, 0.8) !important;
         border: 1px solid rgba(51, 65, 85, 0.8) !important;
@@ -288,6 +292,9 @@ export default function UnifiedResultsCard({
       [data-theme='light'] .unified-results-wrapper .urc-text-white { color: #ffffff !important; }
       [data-theme='light'] .unified-results-wrapper .urc-text-bright { color: #0f172a !important; }
       [data-theme='light'] .unified-results-wrapper .urc-text-muted { color: #64748b !important; }
+      [data-theme='light'] .cad-scope .urc-module-title, [data-theme='light'] .cad-scope .urc-module-prob { color: #2563eb !important; }
+      [data-theme='light'] .readmission-scope .urc-module-title, [data-theme='light'] .readmission-scope .urc-module-prob { color: #059669 !important; }
+      [data-theme='light'] .diabetes-scope .urc-module-title, [data-theme='light'] .diabetes-scope .urc-module-prob { color: #0f766e !important; }
       [data-theme='light'] .unified-results-wrapper .urc-btn-secondary {
         background-color: #f1f5f9 !important;
         border: 1px solid #cbd5e1 !important;
@@ -400,12 +407,12 @@ export default function UnifiedResultsCard({
 
       {/* 2. Standardized Hero Metric Card */}
       <div className="urc-card rounded-2xl p-6 sm:p-8 shadow-xl">
-        <p className="text-xs font-bold urc-text-muted tracking-wider uppercase mb-2">
+        <p className="text-xs font-bold urc-module-title tracking-wider uppercase mb-2">
           {title}
         </p>
 
         <div className="flex items-baseline gap-4 flex-wrap mt-2 mb-3">
-          <span className="text-5xl font-extrabold urc-text-bright tracking-tight">
+          <span className="text-5xl font-extrabold urc-module-prob tracking-tight">
             {probValue}
           </span>
           <span className={`text-sm font-semibold px-3.5 py-1.5 rounded-full inline-flex items-center gap-1.5 ${badgeClass}`}>

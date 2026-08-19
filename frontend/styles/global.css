@@ -57,6 +57,57 @@
   --risk-high-border: rgba(252, 165, 165, 0.4);
 }
 
+/* Module Specific Accent Color System */
+.cad-scope {
+  --module-accent: #3b82f6;
+  --module-accent-hover: #2563eb;
+  --module-accent-light: #60a5fa;
+  --module-accent-soft: rgba(59, 130, 246, 0.18);
+  --module-accent-border: rgba(59, 130, 246, 0.4);
+}
+
+.readmission-scope {
+  --module-accent: #10b981;
+  --module-accent-hover: #059669;
+  --module-accent-light: #34d399;
+  --module-accent-soft: rgba(16, 185, 129, 0.18);
+  --module-accent-border: rgba(16, 185, 129, 0.4);
+}
+
+.diabetes-scope {
+  --module-accent: #14b8a6;
+  --module-accent-hover: #0f766e;
+  --module-accent-light: #2dd4bf;
+  --module-accent-soft: rgba(20, 184, 166, 0.18);
+  --module-accent-border: rgba(20, 184, 166, 0.4);
+}
+
+.cad-scope .btn-primary-teal,
+.readmission-scope .btn-primary-teal,
+.diabetes-scope .btn-primary-teal {
+  background: var(--module-accent);
+  border-color: var(--module-accent);
+  box-shadow: 0 2px 8px var(--module-accent-soft);
+}
+
+.cad-scope .btn-primary-teal:hover:not(:disabled),
+.readmission-scope .btn-primary-teal:hover:not(:disabled),
+.diabetes-scope .btn-primary-teal:hover:not(:disabled) {
+  background: var(--module-accent-hover);
+  border-color: var(--module-accent-hover);
+}
+
+.cad-scope .form-field input:focus,
+.cad-scope .form-field select:focus,
+.readmission-scope .form-field input:focus,
+.readmission-scope .form-field select:focus,
+.diabetes-scope .form-field input:focus,
+.diabetes-scope .form-field select:focus {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+  border-color: var(--module-accent);
+}
+
 * {
   box-sizing: border-box;
 }
